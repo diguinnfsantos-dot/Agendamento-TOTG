@@ -1,0 +1,8 @@
+{
+  "name": "Sistema de Agendamento TOTG/CURVA",
+  "description": "Sistema de agendamento de TOTG/CURVA com controle de cotas por ID/Origem, lembretes via WhatsApp.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
