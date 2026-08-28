@@ -61,9 +61,9 @@ export const AdminClinicalRegistry: React.FC<AdminClinicalRegistryProps> = ({
   const [editingDoctor, setEditingDoctor] = useState<DoctorProfile | null>(null);
   const [doctorForm, setDoctorForm] = useState({
     nome: '',
-    especialidade: specialties[0] || 'Clínica Geral',
+    especialidade: specialties[0] || 'TOTG',
     crm: '',
-    salaPadrao: rooms[0] || 'Consultório 01',
+    salaPadrao: rooms[0] || 'Sala de Coleta',
     telefone: '',
     ativo: true,
   });

@@ -39,12 +39,14 @@ export const sessionBroadcast = typeof window !== 'undefined' && 'BroadcastChann
   : null;
 
 const DEFAULT_SPECIALTIES_LIST = [
+  'TOTG',
+  'TOTG - Teste Oral de Tolerância à Glicose',
+  'Clínica Geral',
   'Cardiologia',
   'Oftalmologia',
   'Ortopedia',
   'Ginecologia',
   'Pediatria',
-  'Clínica Geral',
   'Dermatologia',
   'Neurologia',
   'Endocrinologia',
@@ -54,16 +56,18 @@ const DEFAULT_SPECIALTIES_LIST = [
 ];
 
 const DEFAULT_ROOMS_LIST = [
+  'Sala de Coleta',
+  'Sala de Procedimentos',
   'Consultório 01',
   'Consultório 02',
   'Consultório 03',
   'Consultório 04',
   'Consultório 05',
-  'Sala de Procedimentos',
-  'Sala de Coleta',
 ];
 
 const DEFAULT_DOCTOR_PROFILES: DoctorProfile[] = [
+  { id: 'doc_totg_lab', nome: 'Laboratório / Sala de Coleta', especialidade: 'TOTG', crm: 'LAB/TOTG-01', salaPadrao: 'Sala de Coleta', ativo: true },
+  { id: 'doc_roberto', nome: 'Rodrigo Santos', especialidade: 'TOTG', crm: 'CRM/RJ 88765', salaPadrao: 'Sala de Coleta', ativo: true },
   { id: 'doc_floriano', nome: 'Dr. Floriano Peixoto', especialidade: 'Clínica Geral', crm: 'CRM/RJ 142857', salaPadrao: 'Consultório 01', ativo: true },
   { id: 'doc_fernando', nome: 'Dr. Fernando Dias', especialidade: 'Cardiologia', crm: 'CRM/RJ 98234', salaPadrao: 'Consultório 01', ativo: true },
   { id: 'doc_beatriz', nome: 'Dra. Beatriz Santos', especialidade: 'Oftalmologia', crm: 'CRM/RJ 112450', salaPadrao: 'Consultório 02', ativo: true },
@@ -74,7 +78,6 @@ const DEFAULT_DOCTOR_PROFILES: DoctorProfile[] = [
   { id: 'doc_vanessa', nome: 'Dra. Vanessa Costa', especialidade: 'Dermatologia', crm: 'CRM/RJ 178901', salaPadrao: 'Consultório 02', ativo: true },
   { id: 'doc_carlos', nome: 'Dr. Carlos Mendonça', especialidade: 'Neurologia', crm: 'CRM/RJ 189012', salaPadrao: 'Consultório 03', ativo: true },
   { id: 'doc_mariana', nome: 'Dra. Mariana Costa', especialidade: 'Endocrinologia', crm: 'CRM/RJ 190123', salaPadrao: 'Consultório 04', ativo: true },
-  { id: 'doc_roberto', nome: 'Rodrigo Santos', especialidade: 'Clínica Geral', crm: 'CRM/RJ 88765', salaPadrao: 'Consultório 05', ativo: true },
 ];
 
 const DEFAULT_DOCTORS_LIST = DEFAULT_DOCTOR_PROFILES.map(d => d.nome);
@@ -180,13 +183,15 @@ const INITIAL_USERS: User[] = [
 ];
 
 const INITIAL_RULES: SystemRule = {
-  maxVagasPorId: 3, // Regra Geral Padrão: Cada ID/Posto tem cota padrão de 3 vagas por especialidade
+  maxVagasPorId: 4, // Regra Geral Padrão
   diasParaRepescagemVencimento: 5, // Vagas a ≤ 5 dias de vencimento entram em Repescagem Automática (qualquer Posto pode agendar)
   cotasPorEspecialidade: {
+    'TOTG': { especialidade: 'TOTG', maxVagasPorId: 4, cotaLivreEvento: false, descricaoEvento: '' },
+    'TOTG - Teste Oral de Tolerância à Glicose': { especialidade: 'TOTG - Teste Oral de Tolerância à Glicose', maxVagasPorId: 4, cotaLivreEvento: false, descricaoEvento: '' },
+    'Clínica Geral': { especialidade: 'Clínica Geral', maxVagasPorId: 4, cotaLivreEvento: false, descricaoEvento: '' },
     'Cardiologia': { especialidade: 'Cardiologia', maxVagasPorId: 5, cotaLivreEvento: false, descricaoEvento: '' },
     'Dermatologia': { especialidade: 'Dermatologia', maxVagasPorId: 8, cotaLivreEvento: false, descricaoEvento: '' },
     'Oftalmologia': { especialidade: 'Oftalmologia', maxVagasPorId: 1, cotaLivreEvento: false, motivoRestricao: 'Apenas 1 especialista atuando' },
-    'Clínica Geral': { especialidade: 'Clínica Geral', maxVagasPorId: 4, cotaLivreEvento: false, descricaoEvento: '' },
     'Ortopedia': { especialidade: 'Ortopedia', maxVagasPorId: 3, cotaLivreEvento: false, descricaoEvento: '' },
     'Ginecologia': { especialidade: 'Ginecologia', maxVagasPorId: 3, cotaLivreEvento: false, descricaoEvento: '' },
     'Pediatria': { especialidade: 'Pediatria', maxVagasPorId: 3, cotaLivreEvento: false, descricaoEvento: '' },
@@ -200,172 +205,16 @@ const INITIAL_RULES: SystemRule = {
   enderecoClinica: 'Rua Dr. Luiz Palmier, 726 - Barreto, Niterói - RJ, CEP 24110-310',
 };
 
-// Gerador de Slots para os próximos 10 dias úteis
+// Gerador de Slots: Inicia limpo (0 vagas automáticas). Vagas devem ser geradas exclusivamente pelo Administrador Master.
 function generateInitialSlots(): Slot[] {
-  const slots: Slot[] = [];
-  const especialidades = [
-    { nome: 'Cardiologia', medico: 'Dr. Fernando Dias' },
-    { nome: 'Oftalmologia', medico: 'Dra. Beatriz Santos' },
-    { nome: 'Ortopedia', medico: 'Dr. Lucas Silveira' },
-    { nome: 'Ginecologia', medico: 'Dra. Camila Ramos' },
-    { nome: 'Pediatria', medico: 'Dra. Helena Martins' },
-    { nome: 'Clínica Geral', medico: 'Dr. Marcelo Viana' },
-    { nome: 'Dermatologia', medico: 'Dra. Vanessa Costa' },
-  ];
-
-  const horarios = ['08:00', '08:40', '09:20', '10:00', '10:40', '11:20', '13:30', '14:10', '14:50', '15:30', '16:10'];
-
-  const baseDate = new Date();
-  
-  // Create schedule for 7 days ahead
-  for (let d = 1; d <= 7; d++) {
-    const targetDate = new Date(baseDate);
-    targetDate.setDate(baseDate.getDate() + d);
-    
-    // Pula fins de semana
-    if (targetDate.getDay() === 0 || targetDate.getDay() === 6) continue;
-    
-    const dateStr = targetDate.toISOString().split('T')[0];
-
-    // Distribui 3 especialidades por dia
-    const dailySpecs = [
-      especialidades[(d * 2) % especialidades.length],
-      especialidades[(d * 2 + 1) % especialidades.length],
-      especialidades[(d * 2 + 2) % especialidades.length],
-    ];
-
-    dailySpecs.forEach((spec, specIdx) => {
-      // 4 horários para cada especialidade
-      const selectedHorarios = horarios.slice(specIdx * 3, specIdx * 3 + 4);
-      selectedHorarios.forEach((hora, hIdx) => {
-        slots.push({
-          id: `slot_${dateStr}_${spec.nome.toLowerCase().slice(0, 4)}_${hora.replace(':', '')}_${hIdx}`,
-          data: dateStr,
-          horario: hora,
-          especialidade: spec.nome,
-          medico: spec.medico,
-          sala: `Consultório ${(specIdx % 5) + 1}`,
-          status: 'DISPONIVEL',
-          criadoPorAdmin: true,
-        });
-      });
-    });
-  }
-
-  return slots;
+  return [];
 }
 
 function generateInitialAppointments(slots: Slot[]): { appointments: Appointment[]; updatedSlots: Slot[] } {
-  const appointments: Appointment[] = [];
-  const updatedSlots = [...slots];
-
-  if (updatedSlots.length >= 3) {
-    // 1º Agendamento: Posto P203 (Jaqueline Santos)
-    const slot1 = updatedSlots[0];
-    slot1.status = 'AGENDADO';
-    const app1: Appointment = {
-      id: 'app_001',
-      slotId: slot1.id,
-      data: slot1.data,
-      horario: slot1.horario,
-      especialidade: slot1.especialidade,
-      medico: slot1.medico,
-      postoId: 'P203',
-      origem: 'Policlínica Regional do Barreto – Dr. João da Silva Vizella',
-      operadorId: 'usr_op_jaqueline',
-      operadorNome: 'Jaqueline Santos',
-      operadorEmail: 'jaqueline@jaqueline.com',
-      paciente: {
-        paciente: 'Antônio Ferreira Silva',
-        cpf: '123.456.789-00',
-        sus: '898 0001 2345 6789',
-        nascido: '1975-04-12',
-        mae: 'Maria das Graças Silva',
-        endereco: 'Rua Dr. Luiz Palmier, 142 - Barreto',
-        cep: '24110-310',
-        tel: '(21) 98765-4321',
-      },
-      status: 'CONFIRMED',
-      criadoEm: '2026-08-18T11:00:00Z',
-      atualizadoEm: '2026-08-18T11:00:00Z',
-    };
-    slot1.agendamentoId = app1.id;
-    appointments.push(app1);
-
-    // 2º Agendamento: Posto P227 (UBS Barreto)
-    const slot2 = updatedSlots[1];
-    slot2.status = 'AGENDADO';
-    const app2: Appointment = {
-      id: 'app_002',
-      slotId: slot2.id,
-      data: slot2.data,
-      horario: slot2.horario,
-      especialidade: slot2.especialidade,
-      medico: slot2.medico,
-      postoId: 'P227',
-      origem: 'Unidade Básica de Saúde do Barreto (UBS Barreto)',
-      operadorId: 'usr_op_jaqueline',
-      operadorNome: 'Jaqueline Santos',
-      operadorEmail: 'jaqueline@jaqueline.com',
-      paciente: {
-        paciente: 'Francisca Pereira Santos',
-        cpf: '987.654.321-11',
-        sus: '741 0002 9876 5432',
-        nascido: '1982-11-25',
-        mae: 'Ana Lúcia Pereira',
-        endereco: 'Rua Dr. Luiz Palmier, 880 - Barreto',
-        cep: '24110-310',
-        tel: '(21) 97654-1234',
-      },
-      status: 'CONFIRMED',
-      criadoEm: '2026-08-18T14:30:00Z',
-      atualizadoEm: '2026-08-19T09:00:00Z',
-    };
-    slot2.agendamentoId = app2.id;
-    appointments.push(app2);
-  }
-
-  return { appointments, updatedSlots };
+  return { appointments: [], updatedSlots: [...slots] };
 }
 
-const INITIAL_PATIENTS: RegisteredPatient[] = [
-  {
-    id: 'pat_12345678900',
-    cpf: '123.456.789-00',
-    paciente: 'Antônio Ferreira Silva',
-    sus: '898 0001 2345 6789',
-    nascido: '1975-04-12',
-    mae: 'Maria das Graças Silva',
-    endereco: 'Rua Dr. Luiz Palmier, 142 - Barreto',
-    cep: '24110-310',
-    tel: '(21) 98765-4321',
-    postoId: 'P203',
-    postoNome: 'Policlínica Regional do Barreto – Dr. João da Silva Vizella',
-    operadorId: 'usr_op_jaqueline',
-    operadorNome: 'Jaqueline Santos',
-    criadoEm: '2026-08-18T11:00:00Z',
-    atualizadoEm: '2026-08-18T11:00:00Z',
-    observacoes: 'Paciente cadastrado pelo Posto P203 com histórico de consultas regulares.',
-  },
-  {
-    id: 'pat_98765432111',
-    cpf: '987.654.321-11',
-    paciente: 'Francisca Pereira Santos',
-    sus: '741 0002 9876 5432',
-    nascido: '1982-11-25',
-    mae: 'Ana Lúcia Pereira',
-    endereco: 'Rua Dr. Luiz Palmier, 880 - Barreto',
-    cep: '24110-310',
-    tel: '(21) 97654-1234',
-    postoId: 'P227',
-    postoNome: 'Unidade Básica de Saúde do Barreto (UBS Barreto)',
-    operadorId: 'usr_op_jaqueline',
-    operadorNome: 'Jaqueline Santos',
-    criadoEm: '2026-08-18T14:30:00Z',
-    atualizadoEm: '2026-08-19T09:00:00Z',
-    observacoes: 'Paciente vinculado à UBS Barreto.',
-  },
-];
+const INITIAL_PATIENTS: RegisteredPatient[] = [];
 
 // Database helper functions
 export const db = {
@@ -1812,7 +1661,7 @@ export const db = {
           usuarioNome: 'Rodrigo Santos',
           usuarioEmail: 'admin@klinica.com',
           acao: 'SISTEMA_INICIALIZADO',
-          detalhes: 'Base de dados central e regras de cota configuradas com sucesso.',
+          detalhes: 'Base de dados central e regras de regulação TOTG configuradas com sucesso.',
           tipo: 'SUCESSO',
         },
         {
@@ -1820,18 +1669,9 @@ export const db = {
           timestamp: new Date(Date.now() - 3600000 * 12).toISOString(),
           usuarioNome: 'Rodrigo Santos',
           usuarioEmail: 'admin@klinica.com',
-          acao: 'OPERADOR_APROVADO',
-          detalhes: 'Operador Jaqueline Santos (P227) autorizado para agendamento.',
+          acao: 'SISTEMA_TOTG_CONFIGURADO',
+          detalhes: 'Módulo de Regulação e Agendamento TOTG pronto para geração de agendas pelo Administrador Master.',
           tipo: 'INFO',
-        },
-        {
-          id: 'log_003',
-          timestamp: new Date(Date.now() - 3600000 * 4).toISOString(),
-          usuarioNome: 'Jaqueline Santos',
-          usuarioEmail: 'jaqueline@jaqueline.com',
-          acao: 'AGENDAMENTO_CRIADO',
-          detalhes: 'Consulta de Cardiologia agendada para Antônio Ferreira Silva (P203).',
-          tipo: 'SUCESSO',
         },
       ];
       localStorage.setItem(STORAGE_KEYS.LOGS, JSON.stringify(initialLogs));
@@ -3684,6 +3524,51 @@ export const db = {
         }
       }
     } catch {}
+
+    // 6. Sanitize Legacy Mock Slots, Appointments & Patients
+    try {
+      const rawSlots = localStorage.getItem(STORAGE_KEYS.SLOTS);
+      if (rawSlots) {
+        const parsed = JSON.parse(rawSlots);
+        if (Array.isArray(parsed)) {
+          const clean = parsed.filter(s => {
+            if (!s || !s.id) return false;
+            if (s.id === 'slot_2026-09-01_card_1410_1' || s.id === 'slot_2026-08-31_clín_1330_0') return false;
+            if ((s.especialidade === 'Cardiologia' || s.especialidade === 'Clínica Geral') && (s.id.includes('card_1410') || s.id.includes('clín_1330'))) return false;
+            return true;
+          });
+          localStorage.setItem(STORAGE_KEYS.SLOTS, JSON.stringify(clean));
+        }
+      }
+
+      const rawPatients = localStorage.getItem(STORAGE_KEYS.PATIENTS);
+      if (rawPatients) {
+        const parsed = JSON.parse(rawPatients);
+        if (Array.isArray(parsed)) {
+          const clean = parsed.filter(p => {
+            if (!p || !p.id) return false;
+            if (p.id === 'pat_12345678900' || p.id === 'pat_98765432111') return false;
+            if (p.cpf === '123.456.789-00' || p.cpf === '987.654.321-11') return false;
+            return true;
+          });
+          localStorage.setItem(STORAGE_KEYS.PATIENTS, JSON.stringify(clean));
+        }
+      }
+
+      const rawApps = localStorage.getItem(STORAGE_KEYS.APPOINTMENTS);
+      if (rawApps) {
+        const parsed = JSON.parse(rawApps);
+        if (Array.isArray(parsed)) {
+          const clean = parsed.filter(a => {
+            if (!a || !a.id) return false;
+            if (a.id === 'app_001' || a.id === 'app_002') return false;
+            if (a.especialidade === 'Cardiologia' || a.especialidade === 'Clínica Geral') return false;
+            return true;
+          });
+          localStorage.setItem(STORAGE_KEYS.APPOINTMENTS, JSON.stringify(clean));
+        }
+      }
+    } catch {}
   },
 
   syncAllWithServer: async (): Promise<{ success: boolean; message: string; details: any }> => {
@@ -3697,21 +3582,18 @@ export const db = {
         db.fetchServerRules(),
       ]);
 
-      const localPostos = db.getPostos();
-      const localUsers = db.getUsers();
-      const localSlots = db.getSlots();
-      const localApps = db.getAppointments();
+      const finalSlots = Array.isArray(serverSlots) ? serverSlots : [];
+      const finalApps = Array.isArray(serverApps) ? serverApps : [];
+      const finalPostos = Array.isArray(serverPostos) && serverPostos.length > 0 ? serverPostos : db.getPostos();
+      const finalUsers = Array.isArray(serverUsers) && serverUsers.length > 0 ? serverUsers : db.getUsers();
 
-      // Only if server had zero items in a collection, seed the server from local
-      if ((!serverSlots || serverSlots.length === 0) && localSlots.length > 0) {
-        await db.syncSlotsToServer(localSlots);
-      }
-      if ((!serverApps || serverApps.length === 0) && localApps.length > 0) {
-        await fetch('/api/appointments/sync', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ appointments: localApps }),
-        }).catch(() => {});
+      // Overwrite local cache with authoritative server records
+      db.saveSlots(finalSlots);
+      db.saveAppointments(finalApps);
+      db.savePostos(finalPostos);
+      db.saveUsers(finalUsers);
+      if (serverRules) {
+        db.saveRules(serverRules);
       }
 
       const updatedConfig = {
@@ -3719,11 +3601,6 @@ export const db = {
         lastSync: new Date().toISOString(),
       };
       db.saveDbConfig(updatedConfig);
-
-      const finalSlots = serverSlots && serverSlots.length > 0 ? serverSlots : localSlots;
-      const finalApps = serverApps && serverApps.length > 0 ? serverApps : localApps;
-      const finalPostos = serverPostos && serverPostos.length > 0 ? serverPostos : localPostos;
-      const finalUsers = serverUsers && serverUsers.length > 0 ? serverUsers : localUsers;
 
       return {
         success: true,

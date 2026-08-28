@@ -1,28 +1,16 @@
 {
   "users": [
     {
-      "id": "usr_admin_master",
+      "id": "usr_admin_01",
       "email": "admin@klinica.com",
       "senha": "543W21",
       "nome": "Rodrigo Santos (Administrador Master)",
+      "telefone": "(21) 969558819",
       "role": "ADMIN",
       "status": "ACTIVE",
       "criadoEm": "2026-08-01T10:00:00Z",
-      "telefone": "(21) 969558819",
       "postoId": "P203",
       "origem": "Policlínica Regional do Barreto – Dr. João da Silva Vizella"
-    },
-    {
-      "id": "usr_op_1787709432258_i9rj",
-      "email": "rodrigo@rodrigo.com",
-      "senha": "12345r",
-      "nome": "Rodrigo Ferreira",
-      "telefone": "(21) 99996-6667",
-      "role": "OPERATOR",
-      "postoId": "P203",
-      "origem": "Policlínica Regional do Barreto – Dr. João da Silva Vizella",
-      "status": "ACTIVE",
-      "criadoEm": "2026-08-26T01:57:12.258Z"
     },
     {
       "id": "usr_op_jaqueline",
@@ -47,6 +35,18 @@
       "origem": "Unidade Básica de Saúde do Barreto (UBS Barreto)",
       "status": "ACTIVE",
       "criadoEm": "2026-08-22T17:41:15.218Z"
+    },
+    {
+      "id": "usr_op_1787709432258_i9rj",
+      "email": "rodrigo@rodrigo.com",
+      "senha": "12345r",
+      "nome": "Rodrigo Ferreira",
+      "telefone": "(21) 99996-6667",
+      "role": "OPERATOR",
+      "postoId": "P203",
+      "origem": "Policlínica Regional do Barreto – Dr. João da Silva Vizella",
+      "status": "ACTIVE",
+      "criadoEm": "2026-08-26T01:57:12.258Z"
     }
   ],
   "bannedAdminEmails": [],
@@ -66,7 +66,7 @@
     "enderecoClinica": "Rua Dr. Luiz Palmier, 726 - Barreto, Niterói - RJ, CEP 24110-310",
     "maxVagasPorId": 2,
     "notificacaoWhatsAppAutomatica": true,
-    "mensagemPadraoWhatsApp": "Olá, *{PACIENTE}*!\nConfirmamos o agendamento da sua consulta médica:\n\n📅 *Data:* {DATA}\n⏰ *Horário:* {HORARIO}\n🩺 *Especialidade:* {ESPECIALIDADE}\n👨‍⚕️ *Médico:* {MEDICO}\n🏥 *Local:* {CLINICA} ({ENDERECO_CLINICA})\n📍 *Origem:* {ORIGEM}\n\n⚠️ *Orientações importantes:*\n- Chegar com 15 minutos de antecedência.\n- Levar documento oficial com foto e Cartão SUS ({SUS}).\n- *ATENÇÃO: LEVAR PEDIDO MÉDICO*",
+    "mensagemPadraoWhatsApp": "Olá, *{PACIENTE}*!\nConfirmamos o agendamento da sua consulta médica:\n\n📅 *Data:* {DATA}\n⏰ *Horário:* {HORARIO}\n🩺 *Especialidade:* {ESPECIALIDADE}\n👨‍⚕️ *Médico:* {MEDICO}\n🏥 *Local:* {CLINICA} ({ENDERECO_CLINICA})\n📍 *Origem:* {ORIGEM}\n\n⚠️ *Orientações importantes:*\n- Chegar com 15 minutos de antecedência.\n- Levar documento oficial com foto e Cartão SUS ({SUS}).\n- Em caso de dúvidas, ligue para {TEL_CLINICA}.",
     "cotasPorEspecialidade": {
       "Cardiologia": {
         "especialidade": "Cardiologia",
@@ -118,14 +118,14 @@
       },
       "Pediatria": {
         "especialidade": "Pediatria",
-        "maxVagasPorId": 3,
+        "maxVagasPorId": 2,
         "cotaLivreEvento": false,
         "descricaoEvento": ""
       }
     },
     "diasParaRepescagemVencimento": 5
   },
-  "masterCustomized": false,
+  "masterCustomized": true,
   "doctors": [
     "Dr. Fernando Dias",
     "Dra. Beatriz Santos",
@@ -141,17 +141,82 @@
   ],
   "activeSessions": {
     "diguinnfsantos@gmail.com": {
-      "sessionId": "sess_1787874761247_qddl00a",
-      "userId": "usr_admin_master",
+      "sessionId": "sess_1787924154278_bwris11",
+      "userId": "usr_admin_01",
       "email": "admin@klinica.com",
       "nome": "Rodrigo Santos (Administrador Master)",
       "role": "ADMIN",
-      "postoId": "P01",
-      "origem": "Posto de Coleta",
-      "lastActiveAt": 1787875289600,
-      "loggedInAt": "2026-08-27T23:52:41.247Z",
-      "deviceHint": "Google Chrome no Windows (Computador)",
-      "ip": "2804:14d:2aa0:47f2:e5e7:2e46:e166:f7c8, 169.254.169.126"
+      "postoId": "P203",
+      "origem": "Policlínica Regional do Barreto – Dr. João da Silva Vizella",
+      "lastActiveAt": 1787924154278,
+      "loggedInAt": "2026-08-28T13:35:54.279Z",
+      "deviceHint": "Dispositivo Web / Navegador",
+      "ip": "127.0.0.1"
+    },
+    "usr_admin_01": {
+      "sessionId": "sess_1787924154278_bwris11",
+      "userId": "usr_admin_01",
+      "email": "admin@klinica.com",
+      "nome": "Rodrigo Santos (Administrador Master)",
+      "role": "ADMIN",
+      "postoId": "P203",
+      "origem": "Policlínica Regional do Barreto – Dr. João da Silva Vizella",
+      "lastActiveAt": 1787924154278,
+      "loggedInAt": "2026-08-28T13:35:54.279Z",
+      "deviceHint": "Dispositivo Web / Navegador",
+      "ip": "127.0.0.1"
+    },
+    "usr_op_jaqueline": {
+      "sessionId": "sess_1787924154339_6tvliql",
+      "userId": "usr_op_jaqueline",
+      "email": "jaqueline@jaqueline.com",
+      "nome": "Jaqueline Santos",
+      "role": "OPERATOR",
+      "postoId": "P227",
+      "origem": "Unidade Básica de Saúde do Barreto (UBS Barreto)",
+      "lastActiveAt": 1787924154433,
+      "loggedInAt": "2026-08-28T13:35:54.339Z",
+      "deviceHint": "Dispositivo Web / Navegador",
+      "ip": "127.0.0.1"
+    },
+    "jaqueline@jaqueline.com": {
+      "sessionId": "sess_1787924154339_6tvliql",
+      "userId": "usr_op_jaqueline",
+      "email": "jaqueline@jaqueline.com",
+      "nome": "Jaqueline Santos",
+      "role": "OPERATOR",
+      "postoId": "P227",
+      "origem": "Unidade Básica de Saúde do Barreto (UBS Barreto)",
+      "lastActiveAt": 1787924154433,
+      "loggedInAt": "2026-08-28T13:35:54.339Z",
+      "deviceHint": "Dispositivo Web / Navegador",
+      "ip": "127.0.0.1"
+    },
+    "usr_op_wanessa_1787420475218": {
+      "sessionId": "sess_1787924154389_00pyj5p",
+      "userId": "usr_op_wanessa_1787420475218",
+      "email": "wanessa.operador@posto.com",
+      "nome": "Wanessa Souza",
+      "role": "OPERATOR",
+      "postoId": "P227",
+      "origem": "Unidade Básica de Saúde do Barreto (UBS Barreto)",
+      "lastActiveAt": 1787924154389,
+      "loggedInAt": "2026-08-28T13:35:54.389Z",
+      "deviceHint": "Dispositivo Web / Navegador",
+      "ip": "127.0.0.1"
+    },
+    "wanessa.operador@posto.com": {
+      "sessionId": "sess_1787924154389_00pyj5p",
+      "userId": "usr_op_wanessa_1787420475218",
+      "email": "wanessa.operador@posto.com",
+      "nome": "Wanessa Souza",
+      "role": "OPERATOR",
+      "postoId": "P227",
+      "origem": "Unidade Básica de Saúde do Barreto (UBS Barreto)",
+      "lastActiveAt": 1787924154389,
+      "loggedInAt": "2026-08-28T13:35:54.389Z",
+      "deviceHint": "Dispositivo Web / Navegador",
+      "ip": "127.0.0.1"
     }
   },
   "revokedSessionIds": [
@@ -161,7 +226,8 @@
     "sess_1787871704800_tt2z46t",
     "sess_1787871975522_o1r5l57",
     "sess_1787874726895_9zrrjcx",
-    "sess_1787874761247_qddl00a"
+    "sess_1787874761247_qddl00a",
+    "sess_1787919804696_e75ne1m"
   ],
   "developerIdentity": {
     "id": "dev_master_01",
@@ -187,5 +253,7 @@
     "termoDoacaoTexto": "Eu, desenvolvedor e colaborador voluntário, declaro a cessão de uso, implantação e transferência de autonomia técnica do Sistema Clínico de Agendamento Multi-Postos para a Instituição beneficiária, autorizando a gestão dos dados, parâmetros operacionais e integração com os serviços Google Workspace vinculados à conta master.",
     "chaveLicenca": "LIC-VOLUNTARIA-RSANTOS-2026-MASTER-UNLIMITED"
   },
-  "developerPasswordHash": "b592a1746548e69e8740073be78af1d46d6b45f050a460ff967eca06cd43d838"
+  "developerPasswordHash": "b592a1746548e69e8740073be78af1d46d6b45f050a460ff967eca06cd43d838",
+  "slots": [],
+  "appointments": []
 }

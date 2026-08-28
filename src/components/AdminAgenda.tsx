@@ -77,14 +77,14 @@ export const AdminAgenda: React.FC<AdminAgendaProps> = ({
   const [doctorProfiles, setDoctorProfiles] = useState(() => db.getDoctorProfiles());
 
   // Form State - Add Slots with Automatic Binding
-  const [medicoInput, setMedicoInput] = useState(() => doctorsList[0] || 'Dr. Floriano Peixoto');
+  const [medicoInput, setMedicoInput] = useState(() => doctorsList[0] || 'Laboratório / Sala de Coleta');
   const [specInput, setSpecInput] = useState(() => {
-    const bound = db.getSpecialtyForDoctor(doctorsList[0] || 'Dr. Floriano Peixoto');
-    return bound || specialtiesList[0] || 'Clínica Geral';
+    const bound = db.getSpecialtyForDoctor(doctorsList[0] || 'Laboratório / Sala de Coleta');
+    return bound || specialtiesList[0] || 'TOTG';
   });
   const [salaInput, setSalaInput] = useState(() => {
-    const prof = db.getDoctorProfileByName(doctorsList[0] || 'Dr. Floriano Peixoto');
-    return prof?.salaPadrao || roomsList[0] || 'Consultório 01';
+    const prof = db.getDoctorProfileByName(doctorsList[0] || 'Laboratório / Sala de Coleta');
+    return prof?.salaPadrao || roomsList[0] || 'Sala de Coleta';
   });
 
   // Strict Automatic Doctor-Specialty Linkage Handler

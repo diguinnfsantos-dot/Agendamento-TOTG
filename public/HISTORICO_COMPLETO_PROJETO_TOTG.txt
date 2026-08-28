@@ -1,0 +1,133 @@
+================================================================================
+          HISTÓRICO COMPLETO DO PROJETO - SISTEMA DE AGENDAMENTO TOTG
+                REGULAÇÃO MÉDICA MUNICIPAL DE NITERÓI / RJ
+================================================================================
+Data de Compilação: 28 de Agosto de 2026
+Autor/Responsável: Rodrigo Santos (Administrador Master)
+Contato: (21) 96955-8819 | diguinnfsantos@gmail.com / admin@klinica.com
+Plataforma: Google AI Studio / React + Express + Cloud SQL + PostgreSQL
+================================================================================
+
+--------------------------------------------------------------------------------
+1. OBJETIVO GERAL DO SISTEMA
+--------------------------------------------------------------------------------
+O sistema foi concebido para centralizar, controlar e regular os agendamentos 
+do exame de TOTG (Teste Oral de Tolerância à Glicose) e consultas especializadas
+distribuídas entre os 26 Postos de Saúde e Policlínicas do Município de Niterói 
+(códigos P202 a P230).
+
+Principais pilares:
+- Administrador Master: Gestão total de vagas, cadastro de postos, operadores, 
+  médicos, salas e parâmetros de cotas.
+- Operadores dos Postos: Acesso restrito para realizar agendamentos de pacientes 
+  pertencentes à sua unidade de saúde, respeitando o limite de cotas.
+- Segurança e Auditoria: Registro de logs, prevenção de logins simultâneos da mesma 
+  conta em dispositivos distintos e persistência em banco relacional (Cloud SQL).
+
+--------------------------------------------------------------------------------
+2. LINHA DO TEMPO: DEMANDAS, PROBLEMAS IDENTIFICADOS E SOLUÇÕES APLICADAS
+--------------------------------------------------------------------------------
+
+[ETAPA 1] Criação e Estruturação do Sistema
+- Demanda: Criação da interface com visual limpo, controle de cotas por posto e 
+  formulário de agendamento de consultas e exames.
+- Implementação: Criação dos módulos de autenticação, agendamento para operadores, 
+  painel administrativo de cotas, gestão de postos e regras do sistema.
+
+[ETAPA 2] Padronização dos Códigos dos Postos de Saúde (P202 ao P230)
+- Demanda: Cadastrar a lista oficial com as 26 unidades de saúde municipais de Niterói.
+- Implementação:
+  * P202 - Policlínica Regional Sérgio Arouca (Santa Rosa)
+  * P203 - Policlínica Regional do Barreto (Dr. João da Silva Vizella)
+  * P204 - Policlínica Regional Carlos Antônio da Silva (São Lourenço)
+  * P205 - Policlínica Regional de Itaipu
+  * P206 a P230 - Unidades Básicas e Clínicas Comunitárias da Família.
+- Regra de Integridade: Impossibilidade de exclusão acidental de postos oficiais 
+  e persistência centralizada.
+
+[ETAPA 3] Gestão de Usuários e Controle Rigoroso de Acesso
+- Demanda: Controle de usuários (Admin e Operadores), criação de senhas de 6 dígitos 
+  alfanuméricas e aprovação obrigatória de novos operadores pelo Master.
+- Ajustes de Concorrência:
+  * Usuários distintos (ex: Jaqueline no P227 e Wanessa no P227) podem trabalhar ao 
+    mesmo tempo sem qualquer interferência.
+  * O mesmo usuário logado em dois computadores ao mesmo tempo gera um alerta com 
+    opção de desconectar o computador anterior ("Force Login").
+
+[ETAPA 4] Diagnóstico de Perda de Vagas durante Login de Operadores
+- Problema Detectado: Ao efetuar login simultâneo de múltiplos operadores, a agenda 
+  de 48 vagas gerada pelo Master desaparecia, voltando a exibir 23 ou 32 vagas.
+- Causa Raiz Identificada:
+  * Existiam gatilhos automáticos (`useEffect` com `replace-all`) no frontend que 
+    enviavam o cache antigo do navegador do operador para o servidor no momento do login.
+- Solução Aplicada:
+  * Remoção de todos os métodos destrutivos automáticos (`replace-all`).
+  * O Servidor e o Cloud SQL foram definidos como ÚNICA FONTE DA VERDADE.
+  * Ao fazer login, o operador apenas lê e recebe as vagas da nuvem.
+
+[ETAPA 5] Resíduo de Consultas Inesperadas (Cardiologia e Clínica Geral)
+- Problema Detectado: Surgiram 2 vagas não criadas pelo Master (1 em agosto de Clínica 
+  Geral e 1 em setembro de Cardiologia).
+- Causa Raiz Identificada:
+  * Resquício de uma função inicial de testes (`generateInitialSlots`) salva no estado 
+    de contingência antes da ativação do Cloud SQL.
+- Solução Aplicada:
+  * Remoção completa e definitiva das funções geradoras de dados fictícios.
+  * Purga total das vagas residuais do banco de dados e do servidor.
+  * Base de dados zerada (0 vagas fictícias, 0 agendamentos fictícios, 0 pacientes fictícios).
+  * O sistema agora é 100% manual e controlado exclusivamente pelo Administrador Master.
+
+[ETAPA 6] Foco e Padronização Oficial para Testes com TOTG
+- Demanda: Iniciar os testes oficiais com foco exclusivo em TOTG (Teste Oral de 
+  Tolerância à Glicose).
+- Implementação:
+  * Especialidade padrão: TOTG.
+  * Local padrão de atendimento: Sala de Coleta / Laboratório.
+  * Regra de cota padrão: 4 vagas por posto (totalmente editável pelo Master).
+  * Auditoria e varredura completa realizada com 100% de sucesso.
+
+--------------------------------------------------------------------------------
+3. GUIA PRÁTICO PARA OTIMIZAR NOSSA COMUNICAÇÃO (COMO EVITAR AÇÕES DESPROPORCIONAIS)
+--------------------------------------------------------------------------------
+Para mantermos o melhor alinhamento técnico e evitar interpretações erradas de escopo:
+
+1. Seja Específico Sobre o Alvo da Mudança:
+   - Bom exemplo: "Na tela de Gerenciar Agenda, preciso que o campo Horário permita intervalos de 15 minutos."
+   - Exemplo genérico: "Melhore a agenda para mim."
+
+2. Diferencie 'Explicar/Perguntar' de 'Executar':
+   - Se você quiser apenas entender algo antes de mudar: "Amigo, como funciona o cálculo de repescagem de vagas hoje? Não altere o código ainda, apenas me explique."
+   - Se você quiser que o código seja modificado imediatamente: "Amigo, por favor, altere o prazo da repescagem de 5 dias para 3 dias úteis."
+
+3. Contexto de Testes vs. Produção:
+   - Sempre que quiser limpar ou resetar dados: "Por favor, zere apenas a tabela de vagas para iniciarmos um novo lote de testes, mantendo os usuários intactos."
+
+--------------------------------------------------------------------------------
+4. QUADRO RESUMO DE CREDENCIAIS OFICIAIS ATIVAS (AMBIENTE DE TESTES)
+--------------------------------------------------------------------------------
+1. Administrador Master:
+   - Email: diguinnfsantos@gmail.com / admin@klinica.com
+   - Senha: 543W21
+   - Função: Gestão total, abertura de vagas, configuração de cotas e relatórios.
+
+2. Operadora Jaqueline Santos:
+   - Email: jaqueline@jaqueline.com
+   - Senha: 12345J
+   - Posto: P227 - UBS Barreto
+   - Status: Ativo
+
+3. Operadora Wanessa Souza:
+   - Email: wanessa.operador@posto.com
+   - Senha: 12345W
+   - Posto: P227 - UBS Barreto
+   - Status: Ativo
+
+4. Operador Rodrigo Ferreira:
+   - Email: rodrigo@rodrigo.com
+   - Senha: 12345r
+   - Posto: P203 - Policlínica Regional do Barreto
+   - Status: Ativo
+
+================================================================================
+                              FIM DO DOCUMENTO
+================================================================================

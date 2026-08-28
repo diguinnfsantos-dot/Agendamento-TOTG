@@ -95,13 +95,15 @@ const DEFAULT_RULES = {
   nomeClinica: 'Central de Agendamento RSantos',
   telefoneClinica: '(21) 995860846',
   enderecoClinica: 'Rua Dr. Luiz Palmier, 726 - Barreto, Niterói - RJ, CEP 24110-310',
-  maxVagasPorId: 3,
+  maxVagasPorId: 4,
   diasParaRepescagemVencimento: 5,
   cotasPorEspecialidade: {
+    'TOTG': { especialidade: 'TOTG', maxVagasPorId: 4, cotaLivreEvento: false, descricaoEvento: '' },
+    'TOTG - Teste Oral de Tolerância à Glicose': { especialidade: 'TOTG - Teste Oral de Tolerância à Glicose', maxVagasPorId: 4, cotaLivreEvento: false, descricaoEvento: '' },
+    'Clínica Geral': { especialidade: 'Clínica Geral', maxVagasPorId: 4, cotaLivreEvento: false, descricaoEvento: '' },
     'Cardiologia': { especialidade: 'Cardiologia', maxVagasPorId: 5, cotaLivreEvento: false, descricaoEvento: '' },
     'Dermatologia': { especialidade: 'Dermatologia', maxVagasPorId: 8, cotaLivreEvento: false, descricaoEvento: '' },
     'Oftalmologia': { especialidade: 'Oftalmologia', maxVagasPorId: 1, cotaLivreEvento: false, motivoRestricao: 'Apenas 1 especialista atuando' },
-    'Clínica Geral': { especialidade: 'Clínica Geral', maxVagasPorId: 4, cotaLivreEvento: false, descricaoEvento: '' },
     'Ortopedia': { especialidade: 'Ortopedia', maxVagasPorId: 3, cotaLivreEvento: false, descricaoEvento: '' },
     'Ginecologia': { especialidade: 'Ginecologia', maxVagasPorId: 3, cotaLivreEvento: false, descricaoEvento: '' },
     'Pediatria': { especialidade: 'Pediatria', maxVagasPorId: 3, cotaLivreEvento: false, descricaoEvento: '' },
@@ -336,6 +338,13 @@ function loadServerState() {
           return true;
         });
 
+        const filteredSlots = (Array.isArray(parsed.slots) ? parsed.slots : []).filter((s: any) => {
+          if (!s || !s.id) return false;
+          if (s.id === 'slot_2026-09-01_card_1410_1' || s.id === 'slot_2026-08-31_clín_1330_0') return false;
+          if ((s.especialidade === 'Cardiologia' || s.especialidade === 'Clínica Geral') && (s.id.includes('card_1410') || s.id.includes('clín_1330'))) return false;
+          return true;
+        });
+
         serverState = {
           users: filteredUsers,
           bannedAdminEmails: parsed.bannedAdminEmails || [],
@@ -350,7 +359,7 @@ function loadServerState() {
           revokedSessionIds: Array.from(revokedSessionsSet),
           developerIdentity: parsed.developerIdentity || { ...DEFAULT_DEVELOPER_IDENTITY },
           developerPasswordHash: parsed.developerPasswordHash || DEFAULT_DEV_PWD_HASH,
-          slots: Array.isArray(parsed.slots) ? parsed.slots : [],
+          slots: filteredSlots,
           appointments: Array.isArray(parsed.appointments) ? parsed.appointments : [],
         };
         console.log(`[Server Persistence] State loaded successfully (${serverState.users.length} users, ${serverState.doctors.length} doctors, ${serverState.slots?.length || 0} slots, activeSessions=${activeSessions.size}).`);
@@ -808,10 +817,11 @@ app.post("/api/users/recover-pending", async (req: Request, res: Response) => {
         email: 'wanessa.operador@posto.com',
         senha: '12345W',
         nome: 'Wanessa Souza',
+        telefone: '(21) 99999-9999',
         role: 'OPERATOR',
-        postoId: 'P203',
-        origem: 'Policlínica Regional do Barreto – Dr. João da Silva Vizella',
-        status: 'PENDING',
+        postoId: 'P227',
+        origem: 'Unidade Básica de Saúde do Barreto (UBS Barreto)',
+        status: 'ACTIVE',
         criadoEm: new Date().toISOString(),
       };
 
@@ -1724,7 +1734,21 @@ app.get("/api/slots", async (req: Request, res: Response) => {
   try {
     const result = await db.select().from(slots).orderBy(slots.id);
     if (result && result.length > 0) {
-      const mapped = result.map(s => ({
+      // Filter and delete any legacy mock demo slots from Cloud SQL
+      const cleanResult = result.filter(s => {
+        if (!s || !s.slotId) return false;
+        if (s.slotId === 'slot_2026-09-01_card_1410_1' || s.slotId === 'slot_2026-08-31_clín_1330_0') {
+          db.delete(slots).where(eq(slots.slotId, s.slotId)).catch(() => {});
+          return false;
+        }
+        if ((s.especialidade === 'Cardiologia' || s.especialidade === 'Clínica Geral') && (s.slotId.includes('card_1410') || s.slotId.includes('clín_1330'))) {
+          db.delete(slots).where(eq(slots.slotId, s.slotId)).catch(() => {});
+          return false;
+        }
+        return true;
+      });
+
+      const mapped = cleanResult.map(s => ({
         id: s.slotId,
         data: s.data,
         horario: s.horario,
