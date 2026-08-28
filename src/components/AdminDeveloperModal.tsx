@@ -30,9 +30,10 @@ interface AdminDeveloperModalProps {
   isOpen: boolean;
   onClose: () => void;
   onIdentityUpdated?: (newIdentity: DeveloperIdentity) => void;
+  onAuthenticated?: () => void;
 }
 
-export const AdminDeveloperModal: React.FC<AdminDeveloperModalProps> = ({ isOpen, onClose, onIdentityUpdated }) => {
+export const AdminDeveloperModal: React.FC<AdminDeveloperModalProps> = ({ isOpen, onClose, onIdentityUpdated, onAuthenticated }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [inputPassword, setInputPassword] = useState<string>('');
   const [showInputPassword, setShowInputPassword] = useState<boolean>(false);
@@ -99,6 +100,10 @@ export const AdminDeveloperModal: React.FC<AdminDeveloperModalProps> = ({ isOpen
         if (res.identity) {
           setIdentity(res.identity);
         }
+        try {
+          localStorage.setItem('clinica_master_identified_email', 'diguinnfsantos@gmail.com');
+        } catch {}
+        onAuthenticated?.();
         setAuthError('');
       } else {
         setAuthError(res.message || 'Senha incorreta. Acesso não autorizado.');

@@ -204,9 +204,8 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
       return;
     }
 
-    const isMaster = cleanEmail.toLowerCase() === AUTHORIZED_GOOGLE_EMAIL.toLowerCase();
-    if (!isValidAlphanumericPassword(cleanSenha) && !(isMaster && cleanSenha === '108364aB')) {
-      setLoginError('A senha de segurança deve conter exatamente 6 caracteres alfanuméricos.');
+    if (cleanSenha.length < 3) {
+      setLoginError('A senha de acesso deve conter no mínimo 3 caracteres.');
       return;
     }
 
@@ -797,12 +796,51 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
             </div>
           )}
 
-          {/* DEVELOPER MASTER SECTION & USER LIST */}
+          {/* OPERATOR QUICK ACCESS & DIRECT DIRECTORY */}
+          <div className="mt-6 pt-5 border-t border-slate-100 space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] uppercase font-bold tracking-wider text-slate-700 font-mono flex items-center gap-1.5">
+                <KeyRound className="w-3.5 h-3.5 text-blue-600" />
+                Acesso Rápido - Operadores & Postos ({users.length})
+              </p>
+              <span className="text-[10px] text-slate-400 font-medium">Toque para preencher</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {users.map(u => (
+                <button
+                  key={u.id}
+                  type="button"
+                  onClick={() => fillQuickDemo(u)}
+                  className="text-left p-2.5 rounded-xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50/60 transition-all text-xs flex items-center justify-between group cursor-pointer bg-slate-50/50"
+                >
+                  <div className="truncate pr-2">
+                    <p className="font-bold text-slate-800 truncate group-hover:text-blue-900">
+                      {u.role === 'ADMIN' ? '👑 Admin Master' : `👤 ${u.nome.split(' ')[0]} (${u.postoId || 'Posto'})`}
+                    </p>
+                    <p className="text-[10px] text-slate-500 truncate font-mono">
+                      {u.email}
+                    </p>
+                  </div>
+                  <span className={`text-[9px] px-2 py-0.5 rounded-md font-bold uppercase shrink-0 ${
+                    u.role === 'ADMIN' 
+                      ? 'bg-amber-100 text-amber-800' 
+                      : u.status === 'ACTIVE' 
+                        ? 'bg-emerald-100 text-emerald-800' 
+                        : 'bg-rose-100 text-rose-800'
+                  }`}>
+                    {u.role === 'ADMIN' ? 'Master' : u.status === 'ACTIVE' ? 'Ativo' : 'Pendente'}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* DEVELOPER MASTER SECTION */}
           {isMasterIdentified ? (
             /* AUTHORIZED MASTER VIEW */
-            <div className="mt-6 pt-5 border-t border-slate-100 space-y-3.5 animate-in fade-in">
-              {/* Master Status Card */}
-              <div className="p-3.5 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl space-y-2.5">
+            <div className="mt-4 pt-4 border-t border-slate-100 space-y-3 animate-in fade-in">
+              <div className="p-3 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl space-y-2.5">
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
@@ -845,7 +883,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
 
                   <button
                     type="button"
-                    id="btn-open-dev-modal"
+                    id="btn-open-dev-modal-unlocked"
                     onClick={() => setIsDeveloperModalOpen(true)}
                     className="flex items-center justify-center gap-1.5 py-2 px-3 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer"
                   >
@@ -854,50 +892,10 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                   </button>
                 </div>
               </div>
-
-              {/* Complete User Accounts Directory */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <p className="text-[10px] uppercase font-bold tracking-wider text-slate-600 font-mono flex items-center gap-1.5">
-                    <KeyRound className="w-3.5 h-3.5 text-blue-600" />
-                    Contas do Sistema ({users.length})
-                  </p>
-                  <span className="text-[9px] text-slate-400 font-mono">Clique para preencher</span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {users.map(u => (
-                    <button
-                      key={u.id}
-                      type="button"
-                      onClick={() => fillQuickDemo(u)}
-                      className="text-left p-2.5 rounded-xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50/50 transition-all text-xs flex items-center justify-between group cursor-pointer"
-                    >
-                      <div className="truncate pr-2">
-                        <p className="font-bold text-slate-800 truncate group-hover:text-blue-900">
-                          {u.role === 'ADMIN' ? '👑 Admin Master' : `👤 ${u.nome.split(' ')[0]} (${u.postoId || 'Posto'})`}
-                        </p>
-                        <p className="text-[10px] text-slate-500 truncate font-mono">
-                          {u.email} • Senha: <span className="text-slate-600 font-bold">••••••</span>
-                        </p>
-                      </div>
-                      <span className={`text-[9px] px-2 py-0.5 rounded-md font-bold uppercase shrink-0 ${
-                        u.role === 'ADMIN' 
-                          ? 'bg-amber-100 text-amber-800' 
-                          : u.status === 'ACTIVE' 
-                            ? 'bg-emerald-100 text-emerald-800' 
-                            : 'bg-rose-100 text-rose-800'
-                      }`}>
-                        {u.role === 'ADMIN' ? 'Master' : u.status === 'ACTIVE' ? 'Ativo' : 'Pendente'}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
           ) : (
-            /* NON-AUTHORIZED MASTER VIEW */
-            <div className="mt-6 pt-4 border-t border-slate-100 flex flex-col items-center justify-center space-y-2.5">
+            /* NON-AUTHORIZED / MASTER ACCESS SHORTCUTS */
+            <div className="mt-4 pt-4 border-t border-slate-100 flex flex-col space-y-2.5">
               {googleUser && (
                 <div className="w-full p-2.5 bg-amber-50 border border-amber-200 text-amber-900 text-[11px] rounded-xl flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5 truncate">
@@ -920,18 +918,28 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                 </div>
               )}
 
-              {/* Developer Identification Actions */}
-              <div className="w-full flex items-center justify-center">
+              {/* Master Developer Unlocking Options */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  id="btn-open-dev-modal"
+                  onClick={() => setIsDeveloperModalOpen(true)}
+                  className="flex items-center justify-center gap-1.5 py-2 px-3 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer"
+                >
+                  <Code2 className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Painel Desenvolvedor</span>
+                </button>
+
                 <button
                   type="button"
                   id="btn-google-admin-unlock"
                   onClick={handleGoogleConnect}
                   disabled={isGoogleLoading}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 py-2 px-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-[11px] font-semibold text-slate-700 shadow-2xs hover:border-slate-300 transition-all cursor-pointer disabled:opacity-50"
+                  className="inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 shadow-2xs hover:border-slate-300 transition-all cursor-pointer disabled:opacity-50"
                   title="Identificar com Conta Google Firebase"
                 >
                   <Lock className="w-3.5 h-3.5 text-slate-500" />
-                  <span>{isGoogleLoading ? 'Verificando Firebase...' : 'Identificar via Google (Firebase)'}</span>
+                  <span>{isGoogleLoading ? 'Verificando...' : 'Google Firebase'}</span>
                 </button>
               </div>
             </div>
@@ -943,6 +951,10 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
       <AdminDeveloperModal
         isOpen={isDeveloperModalOpen}
         onClose={() => setIsDeveloperModalOpen(false)}
+        onAuthenticated={() => {
+          setMasterUnlocked(true);
+          setGoogleUser({ email: AUTHORIZED_GOOGLE_EMAIL } as any);
+        }}
       />
 
       {/* Session Conflict Modal ("Usuário conectado em outro aparelho - Deseja continuar?") */}
