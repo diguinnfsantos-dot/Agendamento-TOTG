@@ -1,26 +1,28 @@
 {
   "users": [
     {
-      "id": "usr_admin_01",
+      "id": "usr_admin_master",
       "email": "admin@klinica.com",
       "senha": "543W21",
       "nome": "Rodrigo Santos (Administrador Master)",
-      "telefone": "(21) 969558819",
       "role": "ADMIN",
+      "status": "ACTIVE",
+      "criadoEm": "2026-08-01T10:00:00Z",
+      "telefone": "(21) 969558819",
+      "postoId": "P203",
+      "origem": "Policlínica Regional do Barreto – Dr. João da Silva Vizella"
+    },
+    {
+      "id": "usr_op_1787709432258_i9rj",
+      "email": "rodrigo@rodrigo.com",
+      "senha": "12345r",
+      "nome": "Rodrigo Ferreira",
+      "telefone": "(21) 99996-6667",
+      "role": "OPERATOR",
       "postoId": "P203",
       "origem": "Policlínica Regional do Barreto – Dr. João da Silva Vizella",
       "status": "ACTIVE",
-      "criadoEm": "2026-08-01T10:00:00Z"
-    },
-    {
-      "id": "usr_dev_master_01",
-      "email": "diguinnfsantos@gmail.com",
-      "senha": "543W21",
-      "nome": "Rodrigo Santos (Desenvolvedor Master)",
-      "telefone": "(21) 969558819",
-      "role": "ADMIN",
-      "status": "ACTIVE",
-      "criadoEm": "2026-08-01T10:00:00Z"
+      "criadoEm": "2026-08-26T01:57:12.258Z"
     },
     {
       "id": "usr_op_jaqueline",
@@ -45,18 +47,6 @@
       "origem": "Unidade Básica de Saúde do Barreto (UBS Barreto)",
       "status": "ACTIVE",
       "criadoEm": "2026-08-22T17:41:15.218Z"
-    },
-    {
-      "id": "usr_op_1787709432258_i9rj",
-      "email": "rodrigo@rodrigo.com",
-      "senha": "12345r",
-      "nome": "Rodrigo Ferreira",
-      "telefone": "(21) 99996-6667",
-      "role": "OPERATOR",
-      "postoId": "P203",
-      "origem": "Policlínica Regional do Barreto – Dr. João da Silva Vizella",
-      "status": "ACTIVE",
-      "criadoEm": "2026-08-26T01:57:12.258Z"
     }
   ],
   "bannedAdminEmails": [],
@@ -76,7 +66,7 @@
     "enderecoClinica": "Rua Dr. Luiz Palmier, 726 - Barreto, Niterói - RJ, CEP 24110-310",
     "maxVagasPorId": 2,
     "notificacaoWhatsAppAutomatica": true,
-    "mensagemPadraoWhatsApp": "Olá, *{PACIENTE}*!\nConfirmamos o agendamento da sua consulta médica:\n\n📅 *Data:* {DATA}\n⏰ *Horário:* {HORARIO}\n🩺 *Especialidade:* {ESPECIALIDADE}\n👨‍⚕️ *Médico:* {MEDICO}\n🏥 *Local:* {CLINICA} ({ENDERECO_CLINICA})\n📍 *Origem:* {ORIGEM}\n\n⚠️ *Orientações importantes:*\n- Chegar com 15 minutos de antecedência.\n- Levar documento oficial com foto e Cartão SUS ({SUS}).\n- Em caso de dúvidas, ligue para {TEL_CLINICA}.",
+    "mensagemPadraoWhatsApp": "Olá, *{PACIENTE}*!\nConfirmamos o agendamento da sua consulta médica:\n\n📅 *Data:* {DATA}\n⏰ *Horário:* {HORARIO}\n🩺 *Especialidade:* {ESPECIALIDADE}\n👨‍⚕️ *Médico:* {MEDICO}\n🏥 *Local:* {CLINICA} ({ENDERECO_CLINICA})\n📍 *Origem:* {ORIGEM}\n\n⚠️ *Orientações importantes:*\n- Chegar com 15 minutos de antecedência.\n- Levar documento oficial com foto e Cartão SUS ({SUS}).\n- *ATENÇÃO: LEVAR PEDIDO MÉDICO*",
     "cotasPorEspecialidade": {
       "Cardiologia": {
         "especialidade": "Cardiologia",
@@ -128,7 +118,7 @@
       },
       "Pediatria": {
         "especialidade": "Pediatria",
-        "maxVagasPorId": 2,
+        "maxVagasPorId": 3,
         "cotaLivreEvento": false,
         "descricaoEvento": ""
       }
@@ -149,10 +139,29 @@
     "Dr. Floriano Peixoto",
     "Dr. Roberto Mendes"
   ],
-  "activeSessions": {},
+  "activeSessions": {
+    "diguinnfsantos@gmail.com": {
+      "sessionId": "sess_1787874761247_qddl00a",
+      "userId": "usr_admin_master",
+      "email": "admin@klinica.com",
+      "nome": "Rodrigo Santos (Administrador Master)",
+      "role": "ADMIN",
+      "postoId": "P01",
+      "origem": "Posto de Coleta",
+      "lastActiveAt": 1787875289600,
+      "loggedInAt": "2026-08-27T23:52:41.247Z",
+      "deviceHint": "Google Chrome no Windows (Computador)",
+      "ip": "2804:14d:2aa0:47f2:e5e7:2e46:e166:f7c8, 169.254.169.126"
+    }
+  },
   "revokedSessionIds": [
     "sess_1787853559850_cnyq3m6",
-    "sess_1787856420829_8ouyif0"
+    "sess_1787856420829_8ouyif0",
+    "sess_1787871551665_1fsuqvu",
+    "sess_1787871704800_tt2z46t",
+    "sess_1787871975522_o1r5l57",
+    "sess_1787874726895_9zrrjcx",
+    "sess_1787874761247_qddl00a"
   ],
   "developerIdentity": {
     "id": "dev_master_01",

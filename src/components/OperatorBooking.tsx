@@ -97,7 +97,7 @@ export const OperatorBooking: React.FC<OperatorBookingProps> = ({
   const [searchMyApps, setSearchMyApps] = useState('');
 
   // Specialty list and Quota summary per Specialty
-  const myPostoId = currentUser.postoId || 'P01';
+  const myPostoId = currentUser.postoId || 'P203';
   const repescagemDays = rules.diasParaRepescagemVencimento ?? 5;
 
   // Unique specialties known in system
@@ -274,8 +274,8 @@ export const OperatorBooking: React.FC<OperatorBookingProps> = ({
       horario: selectedSlot.horario,
       especialidade: selectedSlot.especialidade,
       medico: selectedSlot.medico,
-      postoId: currentUser.postoId || 'P01',
-      origem: currentUser.origem || 'Posto de Atendimento',
+      postoId: currentUser.postoId || 'P203',
+      origem: currentUser.origem || 'Policlínica Regional do Barreto – Dr. João da Silva Vizella',
       operadorId: currentUser.id,
       operadorNome: currentUser.nome,
       operadorEmail: currentUser.email,

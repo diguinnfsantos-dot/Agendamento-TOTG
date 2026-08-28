@@ -70,7 +70,7 @@ export const AdminOperators: React.FC<AdminOperatorsProps> = ({
   const [modalEmail, setModalEmail] = useState('');
   const [modalTelefone, setModalTelefone] = useState('');
   const [modalSenha, setModalSenha] = useState('543W21');
-  const [modalPostoId, setModalPostoId] = useState(postos[0]?.id || 'P01');
+  const [modalPostoId, setModalPostoId] = useState(postos[0]?.id || 'P203');
   const [modalStatus, setModalStatus] = useState<'ACTIVE' | 'PENDING'>('ACTIVE');
   const [modalError, setModalError] = useState('');
   const [modalSuccess, setModalSuccess] = useState('');
@@ -249,7 +249,7 @@ export const AdminOperators: React.FC<AdminOperatorsProps> = ({
     setEditEmail(op.email);
     setEditTelefone(op.telefone || '');
     setEditSenha(op.senha || '543W21');
-    setEditPostoId(op.postoId || postos[0]?.id || 'P01');
+    setEditPostoId(op.postoId || postos[0]?.id || 'P203');
     setEditStatus(op.status);
     setEditError('');
     setEditSuccess('');
@@ -640,7 +640,7 @@ export const AdminOperators: React.FC<AdminOperatorsProps> = ({
                       <td className="py-3.5 px-4">
                         <div className="inline-flex items-center gap-1.5 font-bold text-blue-800 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
                           <Building className="w-3 h-3 text-blue-600" />
-                          <span>{op.postoId || 'P01'}</span>
+                          <span>{op.postoId || 'P203'}</span>
                         </div>
                         <div className="text-[11px] text-slate-600 mt-1 max-w-xs truncate" title={op.origem}>
                           {op.origem || 'Posto de Coleta'}

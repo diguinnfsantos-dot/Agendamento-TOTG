@@ -85,7 +85,7 @@ export const AdminPatients: React.FC<AdminPatientsProps> = ({
     endereco: '',
     cep: '',
     tel: '',
-    postoId: postos[0]?.id || 'P01',
+    postoId: postos[0]?.id || 'P203',
     observacoes: '',
   });
   const [formError, setFormError] = useState('');
@@ -177,7 +177,7 @@ export const AdminPatients: React.FC<AdminPatientsProps> = ({
       endereco: '',
       cep: '',
       tel: '',
-      postoId: postos[0]?.id || 'P01',
+      postoId: postos[0]?.id || 'P203',
       observacoes: '',
     });
     setFormError('');

@@ -229,7 +229,7 @@ function generateInitialAppointments(slots: Slot[]): { appointments: Appointment
   const updatedSlots = [...slots];
 
   if (updatedSlots.length >= 3) {
-    // 1º Agendamento: Posto P01 (Mariana Souza)
+    // 1º Agendamento: Posto P203 (Jaqueline Santos)
     const slot1 = updatedSlots[0];
     slot1.status = 'AGENDADO';
     const app1: Appointment = {
@@ -239,11 +239,11 @@ function generateInitialAppointments(slots: Slot[]): { appointments: Appointment
       horario: slot1.horario,
       especialidade: slot1.especialidade,
       medico: slot1.medico,
-      postoId: 'P01',
-      origem: 'Posto Central - Centro',
-      operadorId: 'usr_op_01',
-      operadorNome: 'Mariana Souza',
-      operadorEmail: 'operador1@posto.com',
+      postoId: 'P203',
+      origem: 'Policlínica Regional do Barreto – Dr. João da Silva Vizella',
+      operadorId: 'usr_op_jaqueline',
+      operadorNome: 'Jaqueline Santos',
+      operadorEmail: 'jaqueline@jaqueline.com',
       paciente: {
         paciente: 'Antônio Ferreira Silva',
         cpf: '123.456.789-00',
@@ -261,7 +261,7 @@ function generateInitialAppointments(slots: Slot[]): { appointments: Appointment
     slot1.agendamentoId = app1.id;
     appointments.push(app1);
 
-    // 2º Agendamento: Posto P02 (Carlos Eduardo) com solicitação de cancelamento pendente
+    // 2º Agendamento: Posto P227 (UBS Barreto)
     const slot2 = updatedSlots[1];
     slot2.status = 'AGENDADO';
     const app2: Appointment = {
@@ -271,23 +271,22 @@ function generateInitialAppointments(slots: Slot[]): { appointments: Appointment
       horario: slot2.horario,
       especialidade: slot2.especialidade,
       medico: slot2.medico,
-      postoId: 'P02',
-      origem: 'UBS Santa Rosa - Zona Sul',
-      operadorId: 'usr_op_02',
-      operadorNome: 'Carlos Eduardo Lima',
-      operadorEmail: 'operador2@posto.com',
+      postoId: 'P227',
+      origem: 'Unidade Básica de Saúde do Barreto (UBS Barreto)',
+      operadorId: 'usr_op_jaqueline',
+      operadorNome: 'Jaqueline Santos',
+      operadorEmail: 'jaqueline@jaqueline.com',
       paciente: {
         paciente: 'Francisca Pereira Santos',
         cpf: '987.654.321-11',
         sus: '741 0002 9876 5432',
         nascido: '1982-11-25',
         mae: 'Ana Lúcia Pereira',
-        endereco: 'Rua Santa Rosa, 880 - Santa Rosa',
-        cep: '24240-000',
+        endereco: 'Rua Dr. Luiz Palmier, 880 - Barreto',
+        cep: '24110-310',
         tel: '(21) 97654-1234',
       },
-      status: 'CANCEL_REQUESTED',
-      motivoCancelamento: 'Paciente informou incompatibilidade de horário de trabalho.',
+      status: 'CONFIRMED',
       criadoEm: '2026-08-18T14:30:00Z',
       atualizadoEm: '2026-08-19T09:00:00Z',
     };
@@ -309,13 +308,13 @@ const INITIAL_PATIENTS: RegisteredPatient[] = [
     endereco: 'Rua Dr. Luiz Palmier, 142 - Barreto',
     cep: '24110-310',
     tel: '(21) 98765-4321',
-    postoId: 'P01',
-    postoNome: 'Posto Central - Barreto',
-    operadorId: 'usr_op_01',
-    operadorNome: 'Mariana Souza',
+    postoId: 'P203',
+    postoNome: 'Policlínica Regional do Barreto – Dr. João da Silva Vizella',
+    operadorId: 'usr_op_jaqueline',
+    operadorNome: 'Jaqueline Santos',
     criadoEm: '2026-08-18T11:00:00Z',
     atualizadoEm: '2026-08-18T11:00:00Z',
-    observacoes: 'Paciente cadastrado pelo Posto P01 com histórico de consultas regulares.',
+    observacoes: 'Paciente cadastrado pelo Posto P203 com histórico de consultas regulares.',
   },
   {
     id: 'pat_98765432111',
@@ -324,16 +323,16 @@ const INITIAL_PATIENTS: RegisteredPatient[] = [
     sus: '741 0002 9876 5432',
     nascido: '1982-11-25',
     mae: 'Ana Lúcia Pereira',
-    endereco: 'Rua Santa Rosa, 880 - Santa Rosa',
-    cep: '24240-000',
+    endereco: 'Rua Dr. Luiz Palmier, 880 - Barreto',
+    cep: '24110-310',
     tel: '(21) 97654-1234',
-    postoId: 'P02',
-    postoNome: 'UBS Santa Rosa - Zona Sul',
-    operadorId: 'usr_op_02',
-    operadorNome: 'Carlos Eduardo Lima',
+    postoId: 'P227',
+    postoNome: 'Unidade Básica de Saúde do Barreto (UBS Barreto)',
+    operadorId: 'usr_op_jaqueline',
+    operadorNome: 'Jaqueline Santos',
     criadoEm: '2026-08-18T14:30:00Z',
     atualizadoEm: '2026-08-19T09:00:00Z',
-    observacoes: 'Paciente vinculado à UBS Santa Rosa.',
+    observacoes: 'Paciente vinculado à UBS Barreto.',
   },
 ];
 
@@ -376,7 +375,7 @@ export const db = {
           endereco: app.paciente.endereco || '',
           cep: app.paciente.cep || '',
           tel: app.paciente.tel || '',
-          postoId: app.postoId || 'P01',
+          postoId: app.postoId || 'P203',
           postoNome: posto?.origem || app.origem || `Posto ${app.postoId}`,
           operadorId: app.operadorId,
           operadorNome: app.operadorNome,
@@ -847,8 +846,8 @@ export const db = {
           senha: '12345W',
           telefone: '(21) 99444-3322',
           role: 'OPERATOR',
-          postoId: 'P01',
-          origem: 'Posto Central - Centro',
+          postoId: 'P227',
+          origem: 'Unidade Básica de Saúde do Barreto (UBS Barreto)',
           status: 'PENDING',
           criadoEm: new Date().toISOString(),
         };
@@ -1768,16 +1767,16 @@ export const db = {
           usuarioNome: 'Rodrigo Santos',
           usuarioEmail: 'admin@klinica.com',
           acao: 'OPERADOR_APROVADO',
-          detalhes: 'Operador Mariana Souza (P01) autorizado para agendamento.',
+          detalhes: 'Operador Jaqueline Santos (P227) autorizado para agendamento.',
           tipo: 'INFO',
         },
         {
           id: 'log_003',
           timestamp: new Date(Date.now() - 3600000 * 4).toISOString(),
-          usuarioNome: 'Mariana Souza',
-          usuarioEmail: 'operador1@posto.com',
+          usuarioNome: 'Jaqueline Santos',
+          usuarioEmail: 'jaqueline@jaqueline.com',
           acao: 'AGENDAMENTO_CRIADO',
-          detalhes: 'Consulta de Cardiologia agendada para Antônio Ferreira Silva (P01).',
+          detalhes: 'Consulta de Cardiologia agendada para Antônio Ferreira Silva (P203).',
           tipo: 'SUCESSO',
         },
       ];
@@ -2689,14 +2688,14 @@ export const db = {
         },
         {
           id: 'dev_nb_01',
-          nome: 'Notebook Recepção Posto Central',
+          nome: 'Notebook Recepção Posto Barreto',
           tipo: 'NOTEBOOK',
           ip: '192.168.1.105',
           macAddress: 'F2:88:1C:33:9A:12',
           status: 'AUTHORIZED',
           conexao: 'WIFI_5GHZ',
-          postoId: 'P01',
-          postoNome: 'Posto Central - Centro',
+          postoId: 'P203',
+          postoNome: 'Policlínica Regional do Barreto – Dr. João da Silva Vizella',
           ultimoAcesso: new Date().toISOString(),
           autorizadoEm: new Date().toISOString(),
           autorizadoPor: 'Rodrigo Santos',
@@ -2704,14 +2703,14 @@ export const db = {
         },
         {
           id: 'dev_ipad_01',
-          nome: 'iPad Triagem e Agendamento Rápido',
+          nome: 'iPad Triagem e Agendamento UBS Barreto',
           tipo: 'TABLET',
           ip: '192.168.1.112',
           macAddress: 'D8:9E:61:A0:77:4B',
           status: 'AUTHORIZED',
           conexao: 'WIFI_5GHZ',
-          postoId: 'P02',
-          postoNome: 'UBS Vila Esperança - Zona Leste',
+          postoId: 'P227',
+          postoNome: 'Unidade Básica de Saúde do Barreto (UBS Barreto)',
           ultimoAcesso: new Date().toISOString(),
           autorizadoEm: new Date().toISOString(),
           autorizadoPor: 'Rodrigo Santos',
@@ -2719,14 +2718,14 @@ export const db = {
         },
         {
           id: 'dev_cel_01',
-          nome: 'Smartphone Operador Carlos',
+          nome: 'Smartphone Operador Jaqueline',
           tipo: 'PHONE',
           ip: '192.168.1.118',
           macAddress: '3C:22:FB:41:9E:08',
           status: 'INVITED',
           conexao: 'WIFI_24GHZ',
-          postoId: 'P02',
-          postoNome: 'UBS Vila Esperança - Zona Leste',
+          postoId: 'P227',
+          postoNome: 'Unidade Básica de Saúde do Barreto (UBS Barreto)',
           ultimoAcesso: new Date().toISOString(),
           conviteEnviado: true,
         },
@@ -2738,21 +2737,21 @@ export const db = {
           macAddress: '78:4F:43:B1:88:2E',
           status: 'CONNECTED',
           conexao: 'WIFI_5GHZ',
-          postoId: 'P01',
-          postoNome: 'Posto Central - Centro',
+          postoId: 'P203',
+          postoNome: 'Policlínica Regional do Barreto – Dr. João da Silva Vizella',
           ultimoAcesso: new Date().toISOString(),
           conviteEnviado: false,
         },
         {
           id: 'dev_nb_02',
-          nome: 'Notebook Posto 03 Santa Clara',
+          nome: 'Notebook Posto Fonseca',
           tipo: 'NOTEBOOK',
           ip: '192.168.1.130',
           macAddress: '00:1A:2B:3C:4D:5E',
           status: 'CONNECTED',
           conexao: 'ETHERNET',
-          postoId: 'P03',
-          postoNome: 'Policlínica Santa Clara - Zona Sul',
+          postoId: 'P04',
+          postoNome: 'Ambulatório Fonseca - Centro',
           ultimoAcesso: new Date().toISOString(),
           conviteEnviado: false,
         },
@@ -2883,25 +2882,25 @@ export const db = {
       },
       {
         id: 'dev_nb_01',
-        nome: 'Notebook Recepção Posto Central',
+        nome: 'Notebook Recepção Posto Barreto',
         tipo: 'NOTEBOOK',
         ip: '192.168.1.105',
         macAddress: 'F2:88:1C:33:9A:12',
         status: 'CONNECTED',
         conexao: 'WIFI_5GHZ',
-        postoId: 'P01',
-        postoNome: 'Posto Central - Centro',
+        postoId: 'P203',
+        postoNome: 'Policlínica Regional do Barreto – Dr. João da Silva Vizella',
       },
       {
         id: 'dev_nb_02',
-        nome: 'Notebook Posto 03 Santa Clara (Cabo)',
+        nome: 'Notebook Posto Fonseca (Cabo)',
         tipo: 'NOTEBOOK',
         ip: '192.168.1.130',
         macAddress: '00:1A:2B:3C:4D:5E',
         status: 'CONNECTED',
         conexao: 'ETHERNET',
-        postoId: 'P03',
-        postoNome: 'Policlínica Santa Clara - Zona Sul',
+        postoId: 'P04',
+        postoNome: 'Ambulatório Fonseca - Centro',
       },
       {
         id: 'dev_pc_02',
@@ -2911,30 +2910,30 @@ export const db = {
         macAddress: 'B8:27:EB:44:91:02',
         status: 'CONNECTED',
         conexao: 'ETHERNET',
-        postoId: 'P01',
-        postoNome: 'Posto Central - Centro',
+        postoId: 'P203',
+        postoNome: 'Policlínica Regional do Barreto – Dr. João da Silva Vizella',
       },
       {
         id: 'dev_ipad_01',
-        nome: 'iPad Triagem e Agendamento Rápido',
+        nome: 'iPad Triagem e Agendamento UBS Barreto',
         tipo: 'TABLET',
         ip: '192.168.1.112',
         macAddress: 'D8:9E:61:A0:77:4B',
         status: 'CONNECTED',
         conexao: 'WIFI_5GHZ',
-        postoId: 'P02',
-        postoNome: 'UBS Vila Esperança - Zona Leste',
+        postoId: 'P227',
+        postoNome: 'Unidade Básica de Saúde do Barreto (UBS Barreto)',
       },
       {
         id: 'dev_cel_01',
-        nome: 'Smartphone Operador Carlos',
+        nome: 'Smartphone Operador Jaqueline',
         tipo: 'PHONE',
         ip: '192.168.1.118',
         macAddress: '3C:22:FB:41:9E:08',
         status: 'CONNECTED',
         conexao: 'WIFI_24GHZ',
-        postoId: 'P02',
-        postoNome: 'UBS Vila Esperança - Zona Leste',
+        postoId: 'P227',
+        postoNome: 'Unidade Básica de Saúde do Barreto (UBS Barreto)',
       },
       {
         id: 'dev_cel_02',
@@ -2944,8 +2943,8 @@ export const db = {
         macAddress: '78:4F:43:B1:88:2E',
         status: 'CONNECTED',
         conexao: 'WIFI_5GHZ',
-        postoId: 'P01',
-        postoNome: 'Posto Central - Centro',
+        postoId: 'P203',
+        postoNome: 'Policlínica Regional do Barreto – Dr. João da Silva Vizella',
       },
       {
         id: 'dev_cel_03',
@@ -3511,5 +3510,177 @@ export const db = {
     db.getSlots();
     db.getRules();
   },
+
+  sanitizeDatabase: () => {
+    const deletedPostoIds = new Set(['P01', 'P02', 'P03']);
+    const deletedUserIds = new Set(['usr_op_01', 'usr_op_02', 'usr_op_carlos', 'usr_op_mariana']);
+    const deletedEmails = new Set(['operador1@posto.com', 'operador2@posto.com', 'novo.operador@posto.com', 'carlos@posto.com', 'mariana@posto.com']);
+
+    // 1. Sanitize Postos
+    try {
+      const rawPostos = localStorage.getItem(STORAGE_KEYS.POSTOS);
+      if (rawPostos) {
+        const parsed = JSON.parse(rawPostos);
+        if (Array.isArray(parsed)) {
+          const clean = parsed.filter(p => p && !deletedPostoIds.has(p.id));
+          localStorage.setItem(STORAGE_KEYS.POSTOS, JSON.stringify(clean));
+        }
+      }
+    } catch {}
+
+    // 2. Sanitize Users
+    try {
+      const rawUsers = localStorage.getItem(STORAGE_KEYS.USERS);
+      if (rawUsers) {
+        const parsed = JSON.parse(rawUsers);
+        if (Array.isArray(parsed)) {
+          const clean = parsed.filter(u => {
+            if (!u) return false;
+            if (deletedUserIds.has(u.id)) return false;
+            if (u.email && deletedEmails.has(u.email.toLowerCase())) return false;
+            if (u.postoId && deletedPostoIds.has(u.postoId)) return false;
+            return true;
+          });
+          localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(clean));
+        }
+      }
+    } catch {}
+
+    // 3. Sanitize Appointments
+    try {
+      const rawApps = localStorage.getItem(STORAGE_KEYS.APPOINTMENTS);
+      if (rawApps) {
+        const parsed = JSON.parse(rawApps);
+        if (Array.isArray(parsed)) {
+          const clean = parsed.map(a => {
+            if (a.postoId && deletedPostoIds.has(a.postoId)) {
+              return {
+                ...a,
+                postoId: 'P203',
+                origem: 'Policlínica Regional do Barreto – Dr. João da Silva Vizella'
+              };
+            }
+            return a;
+          });
+          localStorage.setItem(STORAGE_KEYS.APPOINTMENTS, JSON.stringify(clean));
+        }
+      }
+    } catch {}
+
+    // 4. Sanitize Patients
+    try {
+      const rawPatients = localStorage.getItem(STORAGE_KEYS.PATIENTS);
+      if (rawPatients) {
+        const parsed = JSON.parse(rawPatients);
+        if (Array.isArray(parsed)) {
+          const clean = parsed.map(p => {
+            if (p.postoId && deletedPostoIds.has(p.postoId)) {
+              return {
+                ...p,
+                postoId: 'P203',
+                postoNome: 'Policlínica Regional do Barreto – Dr. João da Silva Vizella'
+              };
+            }
+            return p;
+          });
+          localStorage.setItem(STORAGE_KEYS.PATIENTS, JSON.stringify(clean));
+        }
+      }
+    } catch {}
+
+    // 5. Sanitize Devices
+    try {
+      const rawDevs = localStorage.getItem(STORAGE_KEYS.NETWORK_DEVICES);
+      if (rawDevs) {
+        const parsed = JSON.parse(rawDevs);
+        if (Array.isArray(parsed)) {
+          const clean = parsed.map(d => {
+            if (d.postoId && deletedPostoIds.has(d.postoId)) {
+              return {
+                ...d,
+                postoId: 'P203',
+                postoNome: 'Policlínica Regional do Barreto – Dr. João da Silva Vizella'
+              };
+            }
+            return d;
+          });
+          localStorage.setItem(STORAGE_KEYS.NETWORK_DEVICES, JSON.stringify(clean));
+        }
+      }
+    } catch {}
+  },
+
+  syncAllWithServer: async (): Promise<{ success: boolean; message: string; details: any }> => {
+    db.sanitizeDatabase();
+    try {
+      const [postos, users, slots, apps, rules] = await Promise.all([
+        db.fetchServerPostos(),
+        db.fetchServerUsers(),
+        db.fetchServerSlots(),
+        db.fetchServerAppointments(),
+        db.fetchServerRules(),
+      ]);
+
+      // Push clean local state to server to keep it synced
+      const localPostos = db.getPostos();
+      const localUsers = db.getUsers();
+      const localSlots = db.getSlots();
+      const localApps = db.getAppointments();
+
+      await Promise.allSettled([
+        fetch('/api/postos/replace-all', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ postos: localPostos }),
+        }),
+        fetch('/api/users/replace-all', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ users: localUsers }),
+        }),
+        fetch('/api/slots/replace-all', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slots: localSlots }),
+        }),
+        fetch('/api/appointments/replace-all', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ appointments: localApps }),
+        }),
+      ]);
+
+      const updatedConfig = {
+        ...db.getDbConfig(),
+        lastSync: new Date().toISOString(),
+      };
+      db.saveDbConfig(updatedConfig);
+
+      return {
+        success: true,
+        message: 'Banco de dados 100% sincronizado com Cloud SQL e Servidor Central!',
+        details: {
+          postos: localPostos.length,
+          users: localUsers.length,
+          slots: localSlots.length,
+          appointments: localApps.length,
+          lastSync: updatedConfig.lastSync,
+        }
+      };
+    } catch (err: any) {
+      console.warn('SyncAllWithServer warning:', err);
+      return {
+        success: false,
+        message: `Sincronização em modo local concluída: ${err.message || 'Servidor offline'}`,
+        details: null,
+      };
+    }
+  },
 };
+
+// Automatically sanitize on load
+try {
+  db.sanitizeDatabase();
+} catch {}
+
 

@@ -1,0 +1,5 @@
+# Proxy API calls to Cloud Run backend with Cloud SQL
+/api/*  https://ais-dev-itbf2hclsb6fp6shrrnvmu-826738023059.us-east1.run.app/api/:splat  200!
+
+# SPA Routing Fallback
+/*  /index.html  200

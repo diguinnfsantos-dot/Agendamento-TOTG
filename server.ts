@@ -14,6 +14,17 @@ const PORT = 3000;
 // Set realistic payload limit (10MB) to protect server memory on free/low-tier hosting
 app.use(express.json({ limit: "10mb" }));
 
+// Enable CORS for external hosting (Netlify, custom domains, local clients)
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization, x-api-key");
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+  next();
+});
+
 // ----------------------------------------------------
 // Persistent Server State File
 // ----------------------------------------------------
@@ -591,8 +602,8 @@ async function getMergedUsersList(): Promise<any[]> {
             nome: u.nome || existing?.nome || 'Operador',
             telefone: u.telefone || existing?.telefone || '',
             role: u.role || existing?.role || 'OPERATOR',
-            postoId: u.postoId || existing?.postoId || 'P01',
-            origem: u.origem || existing?.origem || 'Posto de Coleta',
+            postoId: (u.postoId && !['P01', 'P02', 'P03'].includes(u.postoId)) ? u.postoId : (existing?.postoId && !['P01', 'P02', 'P03'].includes(existing?.postoId) ? existing?.postoId : 'P203'),
+            origem: (u.origem && !u.origem.includes('Posto Central') && !u.origem.includes('UBS Santa Rosa')) ? u.origem : (existing?.origem || 'Policlínica Regional do Barreto – Dr. João da Silva Vizella'),
             status: u.status || existing?.status || 'PENDING',
             criadoEm: u.criadoEm || existing?.criadoEm || new Date().toISOString(),
           };
@@ -605,6 +616,10 @@ async function getMergedUsersList(): Promise<any[]> {
   // 3. Enforce custom Master Admin if customized
   const currentMaster = serverState.users.find(u => u.role === 'ADMIN');
   if (currentMaster) {
+    if (!currentMaster.postoId || ['P01', 'P02', 'P03'].includes(currentMaster.postoId)) {
+      currentMaster.postoId = 'P203';
+      currentMaster.origem = 'Policlínica Regional do Barreto – Dr. João da Silva Vizella';
+    }
     map.set(currentMaster.email.toLowerCase(), currentMaster);
   }
 
@@ -669,8 +684,8 @@ app.post("/api/users/register", async (req: Request, res: Response) => {
     const cleanNome = nome.trim();
     const cleanTelefone = telefone ? telefone.trim() : "";
     const cleanSenha = senha ? senha.trim() : "543W21";
-    const cleanPostoId = postoId || "P01";
-    const cleanOrigem = origem || "Posto Central - Centro";
+    const cleanPostoId = (postoId && !['P01', 'P02', 'P03'].includes(postoId)) ? postoId : "P203";
+    const cleanOrigem = origem && !origem.includes('Posto Central') ? origem : "Policlínica Regional do Barreto – Dr. João da Silva Vizella";
     const cleanRole = role === 'ADMIN' ? 'ADMIN' : 'OPERATOR';
     // All operator registrations must start as PENDING until approved by Master Admin (unless explicitly created as ACTIVE by admin)
     const cleanStatus = cleanRole === 'ADMIN' ? 'ACTIVE' : (status === 'ACTIVE' ? 'ACTIVE' : 'PENDING');

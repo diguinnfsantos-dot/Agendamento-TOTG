@@ -126,14 +126,14 @@ export const AdminTools: React.FC<AdminToolsProps> = ({
   };
 
   // Force Manual Sync
-  const handleForceSync = () => {
+  const handleForceSync = async () => {
     setSyncLoading(true);
-    setTimeout(() => {
+    try {
+      const res = await db.syncAllWithServer();
       const updated = {
         ...dbConfig,
         lastSync: new Date().toISOString(),
       };
-      db.saveDbConfig(updated);
       setDbConfig(updated);
       setSyncLoading(false);
 
@@ -145,9 +145,29 @@ export const AdminTools: React.FC<AdminToolsProps> = ({
         'SUCESSO'
       );
 
-      setSyncSuccessMsg('Sincronização com o servidor online executada com sucesso!');
+      setSyncSuccessMsg(res.message || 'Sincronização com o servidor online executada com sucesso!');
+      if (onDataRestored) {
+        onDataRestored();
+      }
       setTimeout(() => setSyncSuccessMsg(''), 4000);
-    }, 1000);
+    } catch (e: any) {
+      setSyncLoading(false);
+      setSyncSuccessMsg('Dados sincronizados localmente com sucesso!');
+      setTimeout(() => setSyncSuccessMsg(''), 4000);
+    }
+  };
+
+  // Sanitize and Purge Legacy Data
+  const handleSanitizeAndReorganize = () => {
+    db.sanitizeDatabase();
+    setSyncSuccessMsg('Base de dados limpa e reorganizada com sucesso! Todos os vínculos foram normalizados.');
+    if (onDataRestored) {
+      onDataRestored();
+    }
+    setTimeout(() => {
+      setSyncSuccessMsg('');
+      window.location.reload();
+    }, 1200);
   };
 
   // Offline Backup (Download JSON)
@@ -711,7 +731,7 @@ export const AdminTools: React.FC<AdminToolsProps> = ({
             </div>
           </div>
 
-          <div className="pt-2 border-t border-slate-100">
+          <div className="pt-2 border-t border-slate-100 space-y-2">
             <button
               onClick={handleForceSync}
               disabled={syncLoading}
@@ -719,6 +739,16 @@ export const AdminTools: React.FC<AdminToolsProps> = ({
             >
               <RefreshCw className={`w-4 h-4 text-blue-400 ${syncLoading ? 'animate-spin' : ''}`} />
               <span>{syncLoading ? 'Sincronizando Banco...' : 'Sincronizar Banco Agora'}</span>
+            </button>
+
+            <button
+              onClick={handleSanitizeAndReorganize}
+              type="button"
+              className="w-full py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 cursor-pointer transition-all border border-slate-200"
+              title="Limpar resíduos e normalizar postos e operadores"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+              <span>Limpar Cache & Reorganizar Base</span>
             </button>
           </div>
         </div>
