@@ -528,6 +528,24 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                     className="block w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-600 focus:bg-white transition-colors"
                   />
                 </div>
+
+                {/* Subtle Google Authentication option if Master email is typed and not yet recognized */}
+                {loginEmail.trim().toLowerCase() === AUTHORIZED_GOOGLE_EMAIL.toLowerCase() && !isMasterIdentified && (
+                  <div className="mt-2.5 p-2.5 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between gap-2 animate-in fade-in">
+                    <div className="text-[11px] text-blue-900 font-semibold">
+                      Conta Master detectada.
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleGoogleConnect}
+                      disabled={isGoogleLoading}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer disabled:opacity-50"
+                    >
+                      <Lock className="w-3 h-3" />
+                      <span>{isGoogleLoading ? 'Autenticando...' : 'Autenticar com Google'}</span>
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -796,51 +814,11 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
             </div>
           )}
 
-          {/* OPERATOR QUICK ACCESS & DIRECT DIRECTORY */}
-          <div className="mt-6 pt-5 border-t border-slate-100 space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-[11px] uppercase font-bold tracking-wider text-slate-700 font-mono flex items-center gap-1.5">
-                <KeyRound className="w-3.5 h-3.5 text-blue-600" />
-                Acesso Rápido - Operadores & Postos ({users.length})
-              </p>
-              <span className="text-[10px] text-slate-400 font-medium">Toque para preencher</span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {users.map(u => (
-                <button
-                  key={u.id}
-                  type="button"
-                  onClick={() => fillQuickDemo(u)}
-                  className="text-left p-2.5 rounded-xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50/60 transition-all text-xs flex items-center justify-between group cursor-pointer bg-slate-50/50"
-                >
-                  <div className="truncate pr-2">
-                    <p className="font-bold text-slate-800 truncate group-hover:text-blue-900">
-                      {u.role === 'ADMIN' ? '👑 Admin Master' : `👤 ${u.nome.split(' ')[0]} (${u.postoId || 'Posto'})`}
-                    </p>
-                    <p className="text-[10px] text-slate-500 truncate font-mono">
-                      {u.email}
-                    </p>
-                  </div>
-                  <span className={`text-[9px] px-2 py-0.5 rounded-md font-bold uppercase shrink-0 ${
-                    u.role === 'ADMIN' 
-                      ? 'bg-amber-100 text-amber-800' 
-                      : u.status === 'ACTIVE' 
-                        ? 'bg-emerald-100 text-emerald-800' 
-                        : 'bg-rose-100 text-rose-800'
-                  }`}>
-                    {u.role === 'ADMIN' ? 'Master' : u.status === 'ACTIVE' ? 'Ativo' : 'Pendente'}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* DEVELOPER MASTER SECTION */}
-          {isMasterIdentified ? (
-            /* AUTHORIZED MASTER VIEW */
-            <div className="mt-4 pt-4 border-t border-slate-100 space-y-3 animate-in fade-in">
-              <div className="p-3 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl space-y-2.5">
+          {/* DEVELOPER MASTER SECTION & QUICK DIRECTORY - VISIBLE ONLY IF GOOGLE AUTHENTICATED AS MASTER */}
+          {isMasterIdentified && (
+            <div className="mt-6 pt-5 border-t border-slate-100 space-y-4 animate-in fade-in">
+              {/* Authorized Master Card */}
+              <div className="p-3.5 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl space-y-3">
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
@@ -861,10 +839,10 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                     type="button"
                     onClick={handleMasterDisconnect}
                     className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-800 hover:text-rose-600 bg-white/80 hover:bg-white px-2 py-1 rounded-lg border border-emerald-200 transition-colors cursor-pointer"
-                    title="Desconectar / Bloquear"
+                    title="Desconectar / Ocultar Painel"
                   >
                     <LogOut className="w-3 h-3" />
-                    <span>Bloquear</span>
+                    <span>Bloquear & Ocultar</span>
                   </button>
                 </div>
 
@@ -892,58 +870,85 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                   </button>
                 </div>
               </div>
-            </div>
-          ) : (
-            /* NON-AUTHORIZED / MASTER ACCESS SHORTCUTS */
-            <div className="mt-4 pt-4 border-t border-slate-100 flex flex-col space-y-2.5">
-              {googleUser && (
-                <div className="w-full p-2.5 bg-amber-50 border border-amber-200 text-amber-900 text-[11px] rounded-xl flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1.5 truncate">
-                    <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                    <span className="truncate">Conta <strong>{googleUser.email}</strong> não autorizada como Master.</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleMasterDisconnect}
-                    className="text-[10px] font-bold underline hover:text-amber-950 shrink-0 cursor-pointer"
-                  >
-                    Desconectar
-                  </button>
+
+              {/* Quick Access Directory - Available only to Master */}
+              <div className="space-y-2 pt-1">
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] uppercase font-bold tracking-wider text-slate-700 font-mono flex items-center gap-1.5">
+                    <KeyRound className="w-3.5 h-3.5 text-blue-600" />
+                    Diretório de Operadores & Postos ({users.length})
+                  </p>
+                  <span className="text-[10px] text-slate-400 font-medium">Preenchimento rápido</span>
                 </div>
-              )}
 
-              {googleAuthError && (
-                <div className="w-full p-2.5 bg-rose-50 border border-rose-200 text-rose-700 text-[11px] rounded-xl text-center space-y-1">
-                  <p>{googleAuthError}</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {users.map(u => (
+                    <button
+                      key={u.id}
+                      type="button"
+                      onClick={() => fillQuickDemo(u)}
+                      className="text-left p-2.5 rounded-xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50/60 transition-all text-xs flex items-center justify-between group cursor-pointer bg-slate-50/50"
+                    >
+                      <div className="truncate pr-2">
+                        <p className="font-bold text-slate-800 truncate group-hover:text-blue-900">
+                          {u.role === 'ADMIN' ? '👑 Admin Master' : `👤 ${u.nome.split(' ')[0]} (${u.postoId || 'Posto'})`}
+                        </p>
+                        <p className="text-[10px] text-slate-500 truncate font-mono">
+                          {u.email}
+                        </p>
+                      </div>
+                      <span className={`text-[9px] px-2 py-0.5 rounded-md font-bold uppercase shrink-0 ${
+                        u.role === 'ADMIN' 
+                          ? 'bg-amber-100 text-amber-800' 
+                          : u.status === 'ACTIVE' 
+                            ? 'bg-emerald-100 text-emerald-800' 
+                            : 'bg-rose-100 text-rose-800'
+                      }`}>
+                        {u.role === 'ADMIN' ? 'Master' : u.status === 'ACTIVE' ? 'Ativo' : 'Pendente'}
+                      </span>
+                    </button>
+                  ))}
                 </div>
-              )}
-
-              {/* Master Developer Unlocking Options */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  id="btn-open-dev-modal"
-                  onClick={() => setIsDeveloperModalOpen(true)}
-                  className="flex items-center justify-center gap-1.5 py-2 px-3 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer"
-                >
-                  <Code2 className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Painel Desenvolvedor</span>
-                </button>
-
-                <button
-                  type="button"
-                  id="btn-google-admin-unlock"
-                  onClick={handleGoogleConnect}
-                  disabled={isGoogleLoading}
-                  className="inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 shadow-2xs hover:border-slate-300 transition-all cursor-pointer disabled:opacity-50"
-                  title="Identificar com Conta Google Firebase"
-                >
-                  <Lock className="w-3.5 h-3.5 text-slate-500" />
-                  <span>{isGoogleLoading ? 'Verificando...' : 'Google Firebase'}</span>
-                </button>
               </div>
             </div>
           )}
+
+          {/* Discreet Google Error Notice if non-authorized Google user attempts authentication */}
+          {googleUser && !isMasterIdentified && (
+            <div className="mt-4 p-3 bg-amber-50 border border-amber-200 text-amber-900 text-xs rounded-xl flex items-center justify-between gap-2 animate-in fade-in">
+              <div className="flex items-center gap-1.5 truncate">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                <span className="truncate">Conta <strong>{googleUser.email}</strong> não autorizada como Master.</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleMasterDisconnect}
+                className="text-xs font-bold underline hover:text-amber-950 shrink-0 cursor-pointer"
+              >
+                Desconectar
+              </button>
+            </div>
+          )}
+
+          {googleAuthError && (
+            <div className="mt-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl text-center">
+              <p>{googleAuthError}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Discreet Institutional Security Footer */}
+        <div className="mt-6 mb-2 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+          <span>© 2026 Sistema de Regulação TOTG • Regulação Médica Municipal</span>
+          <button
+            type="button"
+            onClick={handleGoogleConnect}
+            disabled={isGoogleLoading}
+            title="Acesso Restrito"
+            className="p-1 text-slate-300 hover:text-slate-500 transition-colors cursor-pointer rounded-md hover:bg-slate-200/50"
+          >
+            <Lock className="w-3 h-3" />
+          </button>
         </div>
       </div>
 
