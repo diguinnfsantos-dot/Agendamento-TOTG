@@ -95,26 +95,22 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
   const [registerSuccess, setRegisterSuccess] = useState(false);
   const [registerError, setRegisterError] = useState('');
 
-  // Google Auth & Master Developer Unlock State
+  // Google Auth & Master Developer Unlock State (Strictly Session-Based)
   const [googleUser, setGoogleUser] = useState<FirebaseUser | null>(null);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [googleAuthError, setGoogleAuthError] = useState<string | null>(null);
   const [isDeveloperModalOpen, setIsDeveloperModalOpen] = useState(false);
-  
-  const [masterUnlocked, setMasterUnlocked] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    return localStorage.getItem('clinica_master_identified_email') === AUTHORIZED_GOOGLE_EMAIL;
-  });
 
   useEffect(() => {
+    // Purge any legacy persistent master tokens on mount
+    try {
+      localStorage.removeItem('clinica_master_identified_email');
+    } catch {}
+
     const unsubscribe = initAuth(
       (user) => {
         setGoogleUser(user);
         setIsGoogleLoading(false);
-        if (user && user.email?.toLowerCase().trim() === AUTHORIZED_GOOGLE_EMAIL.toLowerCase()) {
-          localStorage.setItem('clinica_master_identified_email', AUTHORIZED_GOOGLE_EMAIL);
-          setMasterUnlocked(true);
-        }
       },
       () => {
         setGoogleUser(null);
@@ -127,7 +123,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
   }, []);
 
   const isAuthorizedGoogleUser = googleUser?.email?.toLowerCase().trim() === AUTHORIZED_GOOGLE_EMAIL.toLowerCase();
-  const isMasterIdentified = isAuthorizedGoogleUser || masterUnlocked;
+  const isMasterIdentified = isAuthorizedGoogleUser;
 
   const handleGoogleConnect = async () => {
     try {
@@ -136,12 +132,9 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
       const res = await signInWithGoogle(false);
       if (res?.user) {
         setGoogleUser(res.user);
-        if (res.user.email?.toLowerCase().trim() === AUTHORIZED_GOOGLE_EMAIL.toLowerCase()) {
-          localStorage.setItem('clinica_master_identified_email', AUTHORIZED_GOOGLE_EMAIL);
-          setMasterUnlocked(true);
-        } else {
+        if (res.user.email?.toLowerCase().trim() !== AUTHORIZED_GOOGLE_EMAIL.toLowerCase()) {
           setGoogleAuthError(
-            `A conta conectada (${res.user.email}) não é a autorizada para desenvolvedor master.`
+            `A conta conectada (${res.user.email}) não possui autorização de Administrador Master.`
           );
         }
       }
@@ -161,8 +154,9 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
     }
     setGoogleUser(null);
     setGoogleAuthError(null);
-    localStorage.removeItem('clinica_master_identified_email');
-    setMasterUnlocked(false);
+    try {
+      localStorage.removeItem('clinica_master_identified_email');
+    } catch {}
   };
 
   const handleDirectMasterLogin = async () => {
@@ -957,7 +951,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
         isOpen={isDeveloperModalOpen}
         onClose={() => setIsDeveloperModalOpen(false)}
         onAuthenticated={() => {
-          setMasterUnlocked(true);
           setGoogleUser({ email: AUTHORIZED_GOOGLE_EMAIL } as any);
         }}
       />

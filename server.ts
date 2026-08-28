@@ -127,8 +127,6 @@ const DEFAULT_DOCTORS_LIST = [
 ];
 
 const DEFAULT_POSTOS = [
-  { id: 'P04', codigo: 'POSTO-04', origem: 'Ambulatório Fonseca - Centro', cidade: 'Niterói', ativo: true },
-  { id: 'P05', codigo: 'POSTO-05', origem: 'Unidade Básica Icaraí - Região Oceânica', cidade: 'Niterói', ativo: true },
   { id: 'P202', codigo: 'POSTO-202', origem: 'MMF da Ponta d’Areia – Maria Tereza Barbosa Rangel (Vó Tereza)', cidade: 'Niterói', ativo: true },
   { id: 'P203', codigo: 'POSTO-203', origem: 'Policlínica Regional do Barreto – Dr. João da Silva Vizella', cidade: 'Niterói', ativo: true },
   { id: 'P204', codigo: 'POSTO-204', origem: 'MMF da Vila Ipiranga – Vilma Espín', cidade: 'Niterói', ativo: true },
@@ -263,6 +261,8 @@ interface ServerState {
   revokedSessionIds?: string[];
   developerIdentity?: DeveloperIdentityRecord;
   developerPasswordHash?: string;
+  slots?: any[];
+  appointments?: any[];
 }
 
 let serverState: ServerState = {
@@ -277,6 +277,8 @@ let serverState: ServerState = {
   revokedSessionIds: [],
   developerIdentity: { ...DEFAULT_DEVELOPER_IDENTITY },
   developerPasswordHash: DEFAULT_DEV_PWD_HASH,
+  slots: [],
+  appointments: [],
 };
 
 // Load saved state from filesystem on boot
@@ -330,7 +332,7 @@ function loadServerState() {
           if (!u || !u.email) return false;
           const emailLower = u.email.toLowerCase();
           if (tombstoneEmails.has(emailLower) || tombstoneIds.has(u.id)) return false;
-          if (u.role === 'OPERATOR' && ['P01', 'P02', 'P03'].includes(u.postoId)) return false;
+          if (u.role === 'OPERATOR' && ['P01', 'P02', 'P03', 'P04', 'P05'].includes(u.postoId)) return false;
           return true;
         });
 
@@ -348,8 +350,10 @@ function loadServerState() {
           revokedSessionIds: Array.from(revokedSessionsSet),
           developerIdentity: parsed.developerIdentity || { ...DEFAULT_DEVELOPER_IDENTITY },
           developerPasswordHash: parsed.developerPasswordHash || DEFAULT_DEV_PWD_HASH,
+          slots: Array.isArray(parsed.slots) ? parsed.slots : [],
+          appointments: Array.isArray(parsed.appointments) ? parsed.appointments : [],
         };
-        console.log(`[Server Persistence] State loaded successfully (${serverState.users.length} users, ${serverState.doctors.length} doctors, activeSessions=${activeSessions.size}).`);
+        console.log(`[Server Persistence] State loaded successfully (${serverState.users.length} users, ${serverState.doctors.length} doctors, ${serverState.slots?.length || 0} slots, activeSessions=${activeSessions.size}).`);
         return;
       }
     }
@@ -602,8 +606,8 @@ async function getMergedUsersList(): Promise<any[]> {
             nome: u.nome || existing?.nome || 'Operador',
             telefone: u.telefone || existing?.telefone || '',
             role: u.role || existing?.role || 'OPERATOR',
-            postoId: (u.postoId && !['P01', 'P02', 'P03'].includes(u.postoId)) ? u.postoId : (existing?.postoId && !['P01', 'P02', 'P03'].includes(existing?.postoId) ? existing?.postoId : 'P203'),
-            origem: (u.origem && !u.origem.includes('Posto Central') && !u.origem.includes('UBS Santa Rosa')) ? u.origem : (existing?.origem || 'Policlínica Regional do Barreto – Dr. João da Silva Vizella'),
+            postoId: (u.postoId && !['P01', 'P02', 'P03', 'P04', 'P05'].includes(u.postoId)) ? u.postoId : (existing?.postoId && !['P01', 'P02', 'P03', 'P04', 'P05'].includes(existing?.postoId) ? existing?.postoId : 'P203'),
+            origem: (u.origem && !u.origem.includes('Posto Central') && !u.origem.includes('UBS Santa Rosa') && !u.origem.includes('Ambulatório Fonseca')) ? u.origem : (existing?.origem || 'Policlínica Regional do Barreto – Dr. João da Silva Vizella'),
             status: u.status || existing?.status || 'PENDING',
             criadoEm: u.criadoEm || existing?.criadoEm || new Date().toISOString(),
           };
@@ -616,7 +620,7 @@ async function getMergedUsersList(): Promise<any[]> {
   // 3. Enforce custom Master Admin if customized
   const currentMaster = serverState.users.find(u => u.role === 'ADMIN');
   if (currentMaster) {
-    if (!currentMaster.postoId || ['P01', 'P02', 'P03'].includes(currentMaster.postoId)) {
+    if (!currentMaster.postoId || ['P01', 'P02', 'P03', 'P04', 'P05'].includes(currentMaster.postoId)) {
       currentMaster.postoId = 'P203';
       currentMaster.origem = 'Policlínica Regional do Barreto – Dr. João da Silva Vizella';
     }
@@ -684,8 +688,8 @@ app.post("/api/users/register", async (req: Request, res: Response) => {
     const cleanNome = nome.trim();
     const cleanTelefone = telefone ? telefone.trim() : "";
     const cleanSenha = senha ? senha.trim() : "543W21";
-    const cleanPostoId = (postoId && !['P01', 'P02', 'P03'].includes(postoId)) ? postoId : "P203";
-    const cleanOrigem = origem && !origem.includes('Posto Central') ? origem : "Policlínica Regional do Barreto – Dr. João da Silva Vizella";
+    const cleanPostoId = (postoId && !['P01', 'P02', 'P03', 'P04', 'P05'].includes(postoId)) ? postoId : "P203";
+    const cleanOrigem = origem && !origem.includes('Posto Central') && !origem.includes('Ambulatório Fonseca') ? origem : "Policlínica Regional do Barreto – Dr. João da Silva Vizella";
     const cleanRole = role === 'ADMIN' ? 'ADMIN' : 'OPERATOR';
     // All operator registrations must start as PENDING until approved by Master Admin (unless explicitly created as ACTIVE by admin)
     const cleanStatus = cleanRole === 'ADMIN' ? 'ACTIVE' : (status === 'ACTIVE' ? 'ACTIVE' : 'PENDING');
@@ -805,8 +809,8 @@ app.post("/api/users/recover-pending", async (req: Request, res: Response) => {
         senha: '12345W',
         nome: 'Wanessa Souza',
         role: 'OPERATOR',
-        postoId: 'P01',
-        origem: 'Posto Central - Centro',
+        postoId: 'P203',
+        origem: 'Policlínica Regional do Barreto – Dr. João da Silva Vizella',
         status: 'PENDING',
         criadoEm: new Date().toISOString(),
       };
@@ -931,8 +935,8 @@ app.post("/api/users/:id/update", async (req: Request, res: Response) => {
         nome: (nome || 'Operador').trim(),
         telefone: cleanPhone || '',
         role: (role || 'OPERATOR') as 'OPERATOR' | 'ADMIN',
-        postoId: postoId || 'P01',
-        origem: origem || 'Posto Central',
+        postoId: (postoId && !['P01', 'P02', 'P03', 'P04', 'P05'].includes(postoId)) ? postoId : 'P203',
+        origem: origem && !origem.includes('Posto Central') && !origem.includes('Ambulatório Fonseca') ? origem : 'Policlínica Regional do Barreto – Dr. João da Silva Vizella',
         status: (status || 'ACTIVE') as 'ACTIVE' | 'PENDING' | 'BLOCKED',
         criadoEm: new Date().toISOString(),
       };
@@ -1077,8 +1081,8 @@ app.post("/api/users/replace-all", async (req: Request, res: Response) => {
           nome: u.nome || 'Operador',
           telefone: u.telefone || null,
           role: u.role || 'OPERATOR',
-          postoId: u.postoId || 'P01',
-          origem: u.origem || 'Posto Central',
+          postoId: (u.postoId && !['P01', 'P02', 'P03', 'P04', 'P05'].includes(u.postoId)) ? u.postoId : 'P203',
+          origem: u.origem && !u.origem.includes('Posto Central') && !u.origem.includes('Ambulatório Fonseca') ? u.origem : 'Policlínica Regional do Barreto – Dr. João da Silva Vizella',
           status: u.status || 'ACTIVE',
           criadoEm: u.criadoEm || new Date().toISOString(),
         }).onConflictDoNothing();
@@ -1559,11 +1563,20 @@ app.get("/api/cloud/status", async (req: Request, res: Response) => {
 
 // Get All Postos from Cloud SQL
 app.get("/api/postos", async (req: Request, res: Response) => {
+  const deletedSet = new Set(['P01', 'P02', 'P03', 'P04', 'P05']);
+  const sortPostosList = (list: any[]) => [...list].sort((a, b) => {
+    const numA = parseInt(a.id.replace(/\D/g, ''), 10) || 0;
+    const numB = parseInt(b.id.replace(/\D/g, ''), 10) || 0;
+    if (numA !== numB) return numA - numB;
+    return a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' });
+  });
+
   try {
     const result = await db.select().from(postos).orderBy(postos.id);
     if (result.length === 0) {
       // Seed default postos once into the database if database is completely empty
       for (const p of DEFAULT_POSTOS) {
+        if (deletedSet.has(p.id)) continue;
         await db.insert(postos).values({
           postoId: p.id,
           codigo: p.codigo,
@@ -1573,25 +1586,31 @@ app.get("/api/postos", async (req: Request, res: Response) => {
         }).onConflictDoNothing();
       }
       const seeded = await db.select().from(postos).orderBy(postos.id);
-      return res.json(seeded.map(p => ({
+      const mapped = seeded
+        .map(p => ({
+          id: p.postoId,
+          codigo: p.codigo,
+          origem: p.origem,
+          cidade: p.cidade,
+          ativo: p.ativo,
+        }))
+        .filter(p => !deletedSet.has(p.id));
+      return res.json(sortPostosList(mapped));
+    }
+
+    const mapped = result
+      .map(p => ({
         id: p.postoId,
         codigo: p.codigo,
         origem: p.origem,
         cidade: p.cidade,
         ativo: p.ativo,
-      })));
-    }
-
-    res.json(result.map(p => ({
-      id: p.postoId,
-      codigo: p.codigo,
-      origem: p.origem,
-      cidade: p.cidade,
-      ativo: p.ativo,
-    })));
+      }))
+      .filter(p => !deletedSet.has(p.id));
+    res.json(sortPostosList(mapped));
   } catch (error: any) {
     console.error("Error fetching postos from Cloud SQL:", error);
-    res.json(DEFAULT_POSTOS);
+    res.json(sortPostosList(DEFAULT_POSTOS.filter(p => !deletedSet.has(p.id))));
   }
 });
 
@@ -1704,20 +1723,50 @@ app.post("/api/postos/replace-all", async (req: Request, res: Response) => {
 app.get("/api/slots", async (req: Request, res: Response) => {
   try {
     const result = await db.select().from(slots).orderBy(slots.id);
-    res.json(result.map(s => ({
-      id: s.slotId,
-      data: s.data,
-      horario: s.horario,
-      especialidade: s.especialidade,
-      medico: s.medico,
-      sala: s.sala || '',
-      vagasTotais: s.vagasTotais,
-      vagasOcupadas: s.vagasOcupadas,
-      postoRestritoId: s.postoRestritoId || undefined,
-      ativo: s.ativo,
-    })));
+    if (result && result.length > 0) {
+      const mapped = result.map(s => ({
+        id: s.slotId,
+        data: s.data,
+        horario: s.horario,
+        especialidade: s.especialidade,
+        medico: s.medico,
+        sala: s.sala || '',
+        vagasTotais: s.vagasTotais,
+        vagasOcupadas: s.vagasOcupadas,
+        postoRestritoId: s.postoRestritoId || undefined,
+        ativo: s.ativo,
+      }));
+      serverState.slots = mapped;
+      saveServerState();
+      return res.json(mapped);
+    }
+
+    // Fallback: if database is empty but serverState has slots, restore to database
+    if (serverState.slots && serverState.slots.length > 0) {
+      for (const s of serverState.slots) {
+        if (!s || !s.id) continue;
+        await db.insert(slots).values({
+          slotId: s.id,
+          data: s.data,
+          horario: s.horario,
+          especialidade: s.especialidade,
+          medico: s.medico,
+          sala: s.sala || null,
+          vagasTotais: s.vagasTotais || 1,
+          vagasOcupadas: s.vagasOcupadas || 0,
+          postoRestritoId: s.postoRestritoId || null,
+          ativo: s.ativo !== undefined ? s.ativo : true,
+        }).onConflictDoNothing();
+      }
+      return res.json(serverState.slots);
+    }
+
+    res.json([]);
   } catch (error: any) {
     console.error("Error fetching slots from Cloud SQL:", error);
+    if (serverState.slots && serverState.slots.length > 0) {
+      return res.json(serverState.slots);
+    }
     res.status(500).json({ error: "Failed to fetch slots", details: error.message });
   }
 });
@@ -1729,6 +1778,9 @@ app.post("/api/slots/replace-all", async (req: Request, res: Response) => {
     if (!Array.isArray(list)) {
       return res.status(400).json({ error: "Invalid payload: slots array expected" });
     }
+
+    serverState.slots = list;
+    saveServerState();
 
     await db.delete(slots);
     let syncedCount = 0;
@@ -1762,6 +1814,14 @@ app.post("/api/slots/sync", async (req: Request, res: Response) => {
     if (!Array.isArray(list)) {
       return res.status(400).json({ error: "Invalid payload: slots array expected" });
     }
+
+    // Merge into serverState
+    const currentSlotsMap = new Map((serverState.slots || []).map((s: any) => [s.id, s]));
+    for (const s of list) {
+      if (s && s.id) currentSlotsMap.set(s.id, s);
+    }
+    serverState.slots = Array.from(currentSlotsMap.values());
+    saveServerState();
 
     let syncedCount = 0;
     for (const s of list) {
@@ -1807,6 +1867,10 @@ app.delete("/api/slots/:id", async (req: Request, res: Response) => {
     if (!slotId) {
       return res.status(400).json({ error: "Slot ID is required" });
     }
+    if (serverState.slots) {
+      serverState.slots = serverState.slots.filter((s: any) => s.id !== slotId && s.slotId !== slotId);
+      saveServerState();
+    }
     await db.delete(slots).where(eq(slots.slotId, slotId));
     res.json({ success: true, deleted: slotId });
   } catch (error: any) {
@@ -1821,6 +1885,10 @@ app.delete("/api/slots/month/:month", async (req: Request, res: Response) => {
     const month = req.params.month; // e.g. "2026-08"
     if (!month) {
       return res.status(400).json({ error: "Month parameter is required (YYYY-MM)" });
+    }
+    if (serverState.slots) {
+      serverState.slots = serverState.slots.filter((s: any) => !(s.data && s.data.startsWith(month)));
+      saveServerState();
     }
     const allSlots = await db.select().from(slots);
     for (const s of allSlots) {
@@ -1839,9 +1907,49 @@ app.delete("/api/slots/month/:month", async (req: Request, res: Response) => {
 app.get("/api/appointments", async (req: Request, res: Response) => {
   try {
     const result = await db.select().from(appointments).orderBy(desc(appointments.id));
-    res.json(result);
+    if (result && result.length > 0) {
+      serverState.appointments = result;
+      saveServerState();
+      return res.json(result);
+    }
+
+    if (serverState.appointments && serverState.appointments.length > 0) {
+      for (const appItem of serverState.appointments) {
+        if (!appItem) continue;
+        const aptId = String(appItem.appointmentId || appItem.id || `app_${Date.now()}`);
+        await db.insert(appointments).values({
+          appointmentId: aptId,
+          slotId: String(appItem.slotId || ''),
+          pacienteNome: String(appItem.pacienteNome || appItem.paciente?.paciente || 'Paciente'),
+          pacienteCpf: String(appItem.pacienteCpf || appItem.paciente?.cpf || ''),
+          pacienteSus: appItem.pacienteSus || appItem.paciente?.sus || null,
+          pacienteTelefone: String(appItem.pacienteTelefone || appItem.paciente?.tel || ''),
+          pacienteDataNasc: appItem.pacienteDataNasc || appItem.paciente?.nascido || null,
+          postoId: String(appItem.postoId || ''),
+          origem: String(appItem.origem || ''),
+          operadorId: String(appItem.operadorId || ''),
+          operadorNome: String(appItem.operadorNome || ''),
+          operadorTelefone: appItem.operadorTelefone ? String(appItem.operadorTelefone) : null,
+          protocolo: String(appItem.protocolo || aptId),
+          data: String(appItem.data || ''),
+          horario: String(appItem.horario || ''),
+          especialidade: String(appItem.especialidade || ''),
+          medico: String(appItem.medico || 'A Definir'),
+          sala: appItem.sala || null,
+          observacoes: appItem.observacoes || appItem.motivoCancelamento || null,
+          status: String(appItem.status || 'CONFIRMED'),
+          criadoEm: String(appItem.criadoEm || new Date().toISOString()),
+        }).onConflictDoNothing();
+      }
+      return res.json(serverState.appointments);
+    }
+
+    res.json([]);
   } catch (error: any) {
     console.error("Error fetching appointments from Cloud SQL:", error);
+    if (serverState.appointments && serverState.appointments.length > 0) {
+      return res.json(serverState.appointments);
+    }
     res.status(500).json({ error: "Failed to fetch appointments", details: error.message });
   }
 });
@@ -1853,6 +1961,9 @@ app.post("/api/appointments/replace-all", async (req: Request, res: Response) =>
     if (!Array.isArray(list)) {
       return res.status(400).json({ error: "Invalid payload: appointments array expected" });
     }
+
+    serverState.appointments = list;
+    saveServerState();
 
     await db.delete(appointments);
     let syncedCount = 0;
@@ -1922,6 +2033,14 @@ app.post("/api/appointments/sync", async (req: Request, res: Response) => {
     if (!Array.isArray(list)) {
       return res.status(400).json({ error: "Invalid payload: appointments array expected" });
     }
+
+    // Merge into serverState
+    const currentAppsMap = new Map((serverState.appointments || []).map((a: any) => [a.appointmentId || a.id, a]));
+    for (const a of list) {
+      if (a) currentAppsMap.set(a.appointmentId || a.id, a);
+    }
+    serverState.appointments = Array.from(currentAppsMap.values());
+    saveServerState();
 
     let syncedCount = 0;
     // Upsert appointments

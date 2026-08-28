@@ -138,31 +138,7 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // Sync state to db whenever it changes
-  useEffect(() => {
-    db.saveUsers(users);
-  }, [users]);
-
-  useEffect(() => {
-    db.savePostos(postos);
-  }, [postos]);
-
-  useEffect(() => {
-    db.saveSlots(slots);
-  }, [slots]);
-
-  useEffect(() => {
-    db.saveAppointments(appointments);
-  }, [appointments]);
-
-  useEffect(() => {
-    db.savePatients(patients);
-  }, [patients]);
-
-  useEffect(() => {
-    db.saveRules(rules);
-  }, [rules]);
-
+  // Session and active tab sync
   useEffect(() => {
     db.setCurrentUser(currentUser);
     if (currentUser) {
@@ -674,7 +650,7 @@ export default function App() {
         pendingOperatorsCount={pendingOperatorsCount}
         pendingCancelsCount={pendingCancelsCount}
         onLogout={handleLogout}
-        onOpenWorkspace={currentUser.role === 'ADMIN' ? () => setShowWorkspaceModal(true) : undefined}
+        onOpenWorkspace={currentUser.role === 'ADMIN' && currentUser.email.toLowerCase().trim() === 'diguinnfsantos@gmail.com' ? () => setShowWorkspaceModal(true) : undefined}
       />
 
       {/* Main Content Area */}
@@ -962,21 +938,23 @@ export default function App() {
             <span>Regulação de Vagas Médicas & Lembretes WhatsApp</span>
           </div>
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => {
-                if (window.confirm('Deseja redefinir todos os dados de demonstração (postos, agenda e agendamentos)?')) {
-                  db.resetAllData();
-                  window.location.reload();
-                }
-              }}
-              className="text-[11px] text-slate-400 hover:text-slate-600 flex items-center gap-1 cursor-pointer"
-              title="Restaurar dados iniciais para demonstração"
-            >
-              <RotateCcw className="w-3 h-3" />
-              <span>Restaurar Demonstração</span>
-            </button>
-          </div>
+          {currentUser?.role === 'ADMIN' && currentUser?.email?.toLowerCase().trim() === 'diguinnfsantos@gmail.com' && (
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => {
+                  if (window.confirm('Deseja redefinir todos os dados de demonstração (postos, agenda e agendamentos)?')) {
+                    db.resetAllData();
+                    window.location.reload();
+                  }
+                }}
+                className="text-[11px] text-slate-400 hover:text-slate-600 flex items-center gap-1 cursor-pointer"
+                title="Restaurar dados iniciais para demonstração"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span>Restaurar Demonstração</span>
+              </button>
+            </div>
+          )}
         </div>
       </footer>
 

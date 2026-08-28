@@ -73,7 +73,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* User Info & Actions */}
           <div className="flex items-center space-x-3">
-            {isAdmin && onOpenWorkspace && (
+            {isAdmin && currentUser.email.toLowerCase().trim() === 'diguinnfsantos@gmail.com' && onOpenWorkspace && (
               <button
                 id="btn-open-workspace"
                 onClick={onOpenWorkspace}

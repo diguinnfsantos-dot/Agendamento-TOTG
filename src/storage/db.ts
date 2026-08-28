@@ -79,10 +79,17 @@ const DEFAULT_DOCTOR_PROFILES: DoctorProfile[] = [
 
 const DEFAULT_DOCTORS_LIST = DEFAULT_DOCTOR_PROFILES.map(d => d.nome);
 
-// Initial Seed Data
+export const sortPostosSequentially = (postosList: Posto[]): Posto[] => {
+  return [...postosList].sort((a, b) => {
+    const numA = parseInt(a.id.replace(/\D/g, ''), 10) || 0;
+    const numB = parseInt(b.id.replace(/\D/g, ''), 10) || 0;
+    if (numA !== numB) return numA - numB;
+    return a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' });
+  });
+};
+
+// Initial Seed Data (Sequential postos starting from P202, P01-P05 permanently deleted)
 const INITIAL_POSTOS: Posto[] = [
-  { id: 'P04', codigo: 'POSTO-04', origem: 'Ambulatório Fonseca - Centro', cidade: 'Niterói', ativo: true },
-  { id: 'P05', codigo: 'POSTO-05', origem: 'Unidade Básica Icaraí - Região Oceânica', cidade: 'Niterói', ativo: true },
   { id: 'P202', codigo: 'POSTO-202', origem: 'MMF da Ponta d’Areia – Maria Tereza Barbosa Rangel (Vó Tereza)', cidade: 'Niterói', ativo: true },
   { id: 'P203', codigo: 'POSTO-203', origem: 'Policlínica Regional do Barreto – Dr. João da Silva Vizella', cidade: 'Niterói', ativo: true },
   { id: 'P204', codigo: 'POSTO-204', origem: 'MMF da Vila Ipiranga – Vilma Espín', cidade: 'Niterói', ativo: true },
@@ -671,7 +678,7 @@ export const db = {
       }
       
       // Filter out banned admin emails and explicitly deleted operators
-      const deletedPostoIds = new Set(['P01', 'P02', 'P03']);
+      const deletedPostoIds = new Set(['P01', 'P02', 'P03', 'P04', 'P05']);
       let filtered = parsed.filter(u => {
         if (!u || !u.email) return false;
         const emailLower = u.email.toLowerCase();
@@ -1042,22 +1049,25 @@ export const db = {
         body: JSON.stringify({ users: cleanUsers }),
       }).catch(e => console.warn('Sync users replace-all error:', e));
 
-      // Keep CURRENT_USER in sync if logged in user is updated
-      const rawCurrent = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
-      if (rawCurrent) {
-        try {
-          const current: User = JSON.parse(rawCurrent);
-          const fresh = cleanUsers.find(u => u.id === current.id || (u.email && current.email && u.email.toLowerCase() === current.email.toLowerCase()) || (u.role === 'ADMIN' && current.role === 'ADMIN'));
-          if (fresh) {
-            if (fresh.role === 'OPERATOR' && (fresh.status === 'PENDING' || fresh.status === 'BLOCKED')) {
-              localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
-            } else {
-              localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(fresh));
+      // Keep CURRENT_USER in sync if logged in user is updated (SessionStorage Only)
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        const rawCurrent = window.sessionStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+        if (rawCurrent) {
+          try {
+            const current: User = JSON.parse(rawCurrent);
+            const fresh = cleanUsers.find(u => u.id === current.id || (u.email && current.email && u.email.toLowerCase() === current.email.toLowerCase()) || (u.role === 'ADMIN' && current.role === 'ADMIN'));
+            if (fresh) {
+              if (fresh.role === 'OPERATOR' && (fresh.status === 'PENDING' || fresh.status === 'BLOCKED')) {
+                window.sessionStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+              } else {
+                window.sessionStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(fresh));
+              }
             }
+          } catch {
+            // ignore
           }
-        } catch {
-          // ignore
         }
+        localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
       }
     } catch (e) {
       console.error('Erro ao salvar usuários no localStorage:', e);
@@ -1065,42 +1075,45 @@ export const db = {
   },
 
   getCurrentUser: (): User | null => {
-    const raw = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
-    if (!raw) return null;
     try {
-      const user: User = JSON.parse(raw);
-      if (user.senha === '1234' || (user.role === 'ADMIN' && user.senha === '12345A')) {
-        user.senha = user.role === 'ADMIN' ? '543W21' : '12345B';
-        if (user.role === 'ADMIN' && user.email === 'admin@clinica.com') {
-          user.email = 'admin@klinica.com';
-          user.nome = user.nome.replace('Dr. Roberto Mendes', 'Rodrigo Santos');
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        const raw = window.sessionStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+        if (!raw) return null;
+        const user: User = JSON.parse(raw);
+        if (user.senha === '1234' || (user.role === 'ADMIN' && user.senha === '12345A')) {
+          user.senha = user.role === 'ADMIN' ? '543W21' : '12345B';
+          if (user.role === 'ADMIN' && user.email === 'admin@clinica.com') {
+            user.email = 'admin@klinica.com';
+            user.nome = user.nome.replace('Dr. Roberto Mendes', 'Rodrigo Santos');
+          }
+          window.sessionStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
         }
-        localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
-      }
 
-      // Security check: Operators with PENDING or BLOCKED status must NEVER be considered logged in
-      if (user.role === 'OPERATOR' && (user.status === 'PENDING' || user.status === 'BLOCKED')) {
-        localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
-        return null;
-      }
-
-      // Re-synchronize with persisted users list so master edits & phone updates are immediately respected
-      const allUsers = db.getUsers();
-      const freshUser = allUsers.find(u => u.id === user.id || (u.email && user.email && u.email.toLowerCase() === user.email.toLowerCase()) || (u.role === 'ADMIN' && user.role === 'ADMIN'));
-      if (freshUser) {
-        if (freshUser.role === 'OPERATOR' && (freshUser.status === 'PENDING' || freshUser.status === 'BLOCKED')) {
-          localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+        // Security check: Operators with PENDING or BLOCKED status must NEVER be considered logged in
+        if (user.role === 'OPERATOR' && (user.status === 'PENDING' || user.status === 'BLOCKED')) {
+          window.sessionStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
           return null;
         }
-        if (freshUser.nome !== user.nome || freshUser.email !== user.email || freshUser.senha !== user.senha || freshUser.telefone !== user.telefone || freshUser.postoId !== user.postoId) {
-          localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(freshUser));
+
+        // Re-synchronize with persisted users list so master edits & phone updates are immediately respected
+        const allUsers = db.getUsers();
+        const freshUser = allUsers.find(u => u.id === user.id || (u.email && user.email && u.email.toLowerCase() === user.email.toLowerCase()) || (u.role === 'ADMIN' && user.role === 'ADMIN'));
+        if (freshUser) {
+          if (freshUser.role === 'OPERATOR' && (freshUser.status === 'PENDING' || freshUser.status === 'BLOCKED')) {
+            window.sessionStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+            return null;
+          }
+          if (freshUser.nome !== user.nome || freshUser.email !== user.email || freshUser.senha !== user.senha || freshUser.telefone !== user.telefone || freshUser.postoId !== user.postoId) {
+            window.sessionStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(freshUser));
+          }
+          return freshUser;
         }
-        return freshUser;
+        return user;
       }
-      return user;
     } catch {
       return null;
     }
+    return null;
   },
 
   updateUserPhone: async (userId: string, newPhone: string): Promise<boolean> => {
@@ -1117,7 +1130,9 @@ export const db = {
       const current = db.getCurrentUser();
       if (current && (current.id === userId || current.email.toLowerCase() === allUsers[userIndex]?.email.toLowerCase())) {
         const updatedCurrent = { ...current, telefone: cleanPhone };
-        localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(updatedCurrent));
+        if (typeof window !== 'undefined' && window.sessionStorage) {
+          window.sessionStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(updatedCurrent));
+        }
       }
 
       // Update operator phone across past appointments booked by this operator
@@ -1149,11 +1164,22 @@ export const db = {
   },
 
   setCurrentUser: (user: User | null) => {
-    if (user) {
-      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
-    } else {
-      localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
-    }
+    try {
+      if (typeof window !== 'undefined') {
+        if (user) {
+          if (window.sessionStorage) {
+            window.sessionStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
+          }
+          // Remove from localStorage to prevent cross-tab/new link auto-login
+          localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+        } else {
+          if (window.sessionStorage) {
+            window.sessionStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+          }
+          localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+        }
+      }
+    } catch {}
   },
 
   getSessionId: (): string | null => {
@@ -1167,29 +1193,24 @@ export const db = {
         }
       }
     } catch {}
-    try {
-      const localSess = localStorage.getItem(STORAGE_KEYS.SESSION_ID);
-      if (localSess) {
-        tabSessionIdMemory = localSess;
-        return localSess;
-      }
-    } catch {}
     return null;
   },
 
   setSessionId: (id: string | null) => {
     tabSessionIdMemory = id;
     try {
-      if (id) {
-        if (typeof window !== 'undefined' && window.sessionStorage) {
-          window.sessionStorage.setItem(STORAGE_KEYS.SESSION_ID, id);
+      if (typeof window !== 'undefined') {
+        if (id) {
+          if (window.sessionStorage) {
+            window.sessionStorage.setItem(STORAGE_KEYS.SESSION_ID, id);
+          }
+          localStorage.removeItem(STORAGE_KEYS.SESSION_ID);
+        } else {
+          if (window.sessionStorage) {
+            window.sessionStorage.removeItem(STORAGE_KEYS.SESSION_ID);
+          }
+          localStorage.removeItem(STORAGE_KEYS.SESSION_ID);
         }
-        localStorage.setItem(STORAGE_KEYS.SESSION_ID, id);
-      } else {
-        if (typeof window !== 'undefined' && window.sessionStorage) {
-          window.sessionStorage.removeItem(STORAGE_KEYS.SESSION_ID);
-        }
-        localStorage.removeItem(STORAGE_KEYS.SESSION_ID);
       }
     } catch {}
   },
@@ -1410,31 +1431,32 @@ export const db = {
   },
 
   getPostos: (): Posto[] => {
-    const deletedPostoIds = new Set(['P01', 'P02', 'P03']);
+    const deletedPostoIds = new Set(['P01', 'P02', 'P03', 'P04', 'P05']);
     const raw = localStorage.getItem(STORAGE_KEYS.POSTOS);
     if (!raw) {
-      const cleanSeed = INITIAL_POSTOS.filter(p => !deletedPostoIds.has(p.id));
+      const cleanSeed = sortPostosSequentially(INITIAL_POSTOS.filter(p => !deletedPostoIds.has(p.id)));
       localStorage.setItem(STORAGE_KEYS.POSTOS, JSON.stringify(cleanSeed));
       return cleanSeed;
     }
     try {
       const stored: Posto[] = JSON.parse(raw);
       if (Array.isArray(stored)) {
-        const clean = stored.filter(p => p && !deletedPostoIds.has(p.id));
-        if (clean.length !== stored.length) {
+        const clean = sortPostosSequentially(stored.filter(p => p && !deletedPostoIds.has(p.id)));
+        if (clean.length !== stored.length || JSON.stringify(clean) !== JSON.stringify(stored)) {
           localStorage.setItem(STORAGE_KEYS.POSTOS, JSON.stringify(clean));
         }
         return clean;
       }
-      return INITIAL_POSTOS.filter(p => !deletedPostoIds.has(p.id));
+      const fallback = sortPostosSequentially(INITIAL_POSTOS.filter(p => !deletedPostoIds.has(p.id)));
+      return fallback;
     } catch {
-      return INITIAL_POSTOS.filter(p => !deletedPostoIds.has(p.id));
+      return sortPostosSequentially(INITIAL_POSTOS.filter(p => !deletedPostoIds.has(p.id)));
     }
   },
 
   savePostos: (postos: Posto[]) => {
-    const deletedPostoIds = new Set(['P01', 'P02', 'P03']);
-    const clean = postos.filter(p => p && !deletedPostoIds.has(p.id));
+    const deletedPostoIds = new Set(['P01', 'P02', 'P03', 'P04', 'P05']);
+    const clean = sortPostosSequentially(postos.filter(p => p && !deletedPostoIds.has(p.id)));
     localStorage.setItem(STORAGE_KEYS.POSTOS, JSON.stringify(clean));
     fetch('/api/postos/replace-all', {
       method: 'POST',
@@ -1466,13 +1488,13 @@ export const db = {
   },
 
   fetchServerPostos: async (): Promise<Posto[]> => {
-    const deletedPostoIds = new Set(['P01', 'P02', 'P03']);
+    const deletedPostoIds = new Set(['P01', 'P02', 'P03', 'P04', 'P05']);
     try {
       const res = await fetch('/api/postos');
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data)) {
-          const clean = data.filter((p: any) => p && !deletedPostoIds.has(p.id));
+          const clean = sortPostosSequentially(data.filter((p: any) => p && !deletedPostoIds.has(p.id)));
           localStorage.setItem(STORAGE_KEYS.POSTOS, JSON.stringify(clean));
           return clean;
         }
@@ -2776,14 +2798,14 @@ export const db = {
         },
         {
           id: 'dev_nb_02',
-          nome: 'Notebook Posto Fonseca',
+          nome: 'Notebook Posto Barreto 02',
           tipo: 'NOTEBOOK',
           ip: '192.168.1.130',
           macAddress: '00:1A:2B:3C:4D:5E',
           status: 'CONNECTED',
           conexao: 'ETHERNET',
-          postoId: 'P04',
-          postoNome: 'Ambulatório Fonseca - Centro',
+          postoId: 'P203',
+          postoNome: 'Policlínica Regional do Barreto – Dr. João da Silva Vizella',
           ultimoAcesso: new Date().toISOString(),
           conviteEnviado: false,
         },
@@ -2925,14 +2947,14 @@ export const db = {
       },
       {
         id: 'dev_nb_02',
-        nome: 'Notebook Posto Fonseca (Cabo)',
+        nome: 'Notebook Posto Barreto 02 (Cabo)',
         tipo: 'NOTEBOOK',
         ip: '192.168.1.130',
         macAddress: '00:1A:2B:3C:4D:5E',
         status: 'CONNECTED',
         conexao: 'ETHERNET',
-        postoId: 'P04',
-        postoNome: 'Ambulatório Fonseca - Centro',
+        postoId: 'P203',
+        postoNome: 'Policlínica Regional do Barreto – Dr. João da Silva Vizella',
       },
       {
         id: 'dev_pc_02',
@@ -2986,19 +3008,19 @@ export const db = {
         macAddress: '9C:B6:D0:11:4A:88',
         status: 'CONNECTED',
         conexao: 'WIFI_5GHZ',
-        postoId: 'P04',
-        postoNome: 'Ambulatório Jardim das Flores',
+        postoId: 'P204',
+        postoNome: 'MMF da Vila Ipiranga – Vilma Espín',
       },
       {
         id: 'dev_pc_03',
-        nome: 'Computador Triagem Posto 05 (Cabo Ethernet)',
+        nome: 'Computador Triagem Posto 205 (Cabo Ethernet)',
         tipo: 'COMPUTER',
         ip: '192.168.1.148',
         macAddress: '14:2D:27:8E:9F:01',
         status: 'CONNECTED',
         conexao: 'ETHERNET',
-        postoId: 'P05',
-        postoNome: 'Unidade Básica Morada do Sol',
+        postoId: 'P205',
+        postoNome: 'Policlínica Regional de São Lourenço – Dr. Carlos Antônio da Silva',
       },
       {
         id: 'dev_ipad_02',
@@ -3559,7 +3581,14 @@ export const db = {
   },
 
   sanitizeDatabase: () => {
-    const deletedPostoIds = new Set(['P01', 'P02', 'P03']);
+    // Purge any lingering session or master identity from localStorage
+    try {
+      localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+      localStorage.removeItem(STORAGE_KEYS.SESSION_ID);
+      localStorage.removeItem('clinica_master_identified_email');
+    } catch {}
+
+    const deletedPostoIds = new Set(['P01', 'P02', 'P03', 'P04', 'P05']);
     const deletedUserIds = new Set(['usr_op_01', 'usr_op_02', 'usr_op_carlos', 'usr_op_mariana']);
     const deletedEmails = new Set(['operador1@posto.com', 'operador2@posto.com', 'novo.operador@posto.com', 'carlos@posto.com', 'mariana@posto.com']);
 
@@ -3660,7 +3689,7 @@ export const db = {
   syncAllWithServer: async (): Promise<{ success: boolean; message: string; details: any }> => {
     db.sanitizeDatabase();
     try {
-      const [postos, users, slots, apps, rules] = await Promise.all([
+      const [serverPostos, serverUsers, serverSlots, serverApps, serverRules] = await Promise.all([
         db.fetchServerPostos(),
         db.fetchServerUsers(),
         db.fetchServerSlots(),
@@ -3668,34 +3697,22 @@ export const db = {
         db.fetchServerRules(),
       ]);
 
-      // Push clean local state to server to keep it synced
       const localPostos = db.getPostos();
       const localUsers = db.getUsers();
       const localSlots = db.getSlots();
       const localApps = db.getAppointments();
 
-      await Promise.allSettled([
-        fetch('/api/postos/replace-all', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ postos: localPostos }),
-        }),
-        fetch('/api/users/replace-all', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ users: localUsers }),
-        }),
-        fetch('/api/slots/replace-all', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ slots: localSlots }),
-        }),
-        fetch('/api/appointments/replace-all', {
+      // Only if server had zero items in a collection, seed the server from local
+      if ((!serverSlots || serverSlots.length === 0) && localSlots.length > 0) {
+        await db.syncSlotsToServer(localSlots);
+      }
+      if ((!serverApps || serverApps.length === 0) && localApps.length > 0) {
+        await fetch('/api/appointments/sync', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ appointments: localApps }),
-        }),
-      ]);
+        }).catch(() => {});
+      }
 
       const updatedConfig = {
         ...db.getDbConfig(),
@@ -3703,14 +3720,19 @@ export const db = {
       };
       db.saveDbConfig(updatedConfig);
 
+      const finalSlots = serverSlots && serverSlots.length > 0 ? serverSlots : localSlots;
+      const finalApps = serverApps && serverApps.length > 0 ? serverApps : localApps;
+      const finalPostos = serverPostos && serverPostos.length > 0 ? serverPostos : localPostos;
+      const finalUsers = serverUsers && serverUsers.length > 0 ? serverUsers : localUsers;
+
       return {
         success: true,
         message: 'Banco de dados 100% sincronizado com Cloud SQL e Servidor Central!',
         details: {
-          postos: localPostos.length,
-          users: localUsers.length,
-          slots: localSlots.length,
-          appointments: localApps.length,
+          postos: finalPostos.length,
+          users: finalUsers.length,
+          slots: finalSlots.length,
+          appointments: finalApps.length,
           lastSync: updatedConfig.lastSync,
         }
       };
