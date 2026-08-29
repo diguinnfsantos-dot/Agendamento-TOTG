@@ -1,0 +1,2 @@
+Sistema Integrado de Agendamento — V2.0.0
+Banco central PostgreSQL + reserva transacional
