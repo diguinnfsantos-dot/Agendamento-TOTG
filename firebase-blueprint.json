@@ -1,0 +1,164 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "System users including Master Admin and Posto Operators",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "email": { "type": "string" },
+        "senha": { "type": "string" },
+        "nome": { "type": "string" },
+        "telefone": { "type": "string" },
+        "role": { "type": "string", "enum": ["ADMIN", "OPERATOR"] },
+        "postoId": { "type": "string" },
+        "origem": { "type": "string" },
+        "status": { "type": "string", "enum": ["ACTIVE", "PENDING", "INACTIVE"] },
+        "criadoEm": { "type": "string" }
+      },
+      "required": ["id", "email", "nome", "role", "status"]
+    },
+    "Posto": {
+      "title": "Posto",
+      "description": "Municipal health units in Niteroi",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "codigo": { "type": "string" },
+        "origem": { "type": "string" },
+        "cidade": { "type": "string" },
+        "ativo": { "type": "boolean" }
+      },
+      "required": ["id", "codigo", "origem", "ativo"]
+    },
+    "Slot": {
+      "title": "Slot",
+      "description": "Available medical and exam appointment slots",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "data": { "type": "string" },
+        "horario": { "type": "string" },
+        "especialidade": { "type": "string" },
+        "medico": { "type": "string" },
+        "salaPadrao": { "type": "string" },
+        "vagasTotal": { "type": "number" },
+        "vagasOcupadas": { "type": "number" },
+        "status": { "type": "string" },
+        "criadoEm": { "type": "string" }
+      },
+      "required": ["id", "data", "horario", "especialidade", "vagasTotal", "vagasOcupadas", "status"]
+    },
+    "Appointment": {
+      "title": "Appointment",
+      "description": "Booked appointment records",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "slotId": { "type": "string" },
+        "data": { "type": "string" },
+        "horario": { "type": "string" },
+        "especialidade": { "type": "string" },
+        "medico": { "type": "string" },
+        "sala": { "type": "string" },
+        "postoId": { "type": "string" },
+        "postoNome": { "type": "string" },
+        "paciente": { "type": "object" },
+        "operadorId": { "type": "string" },
+        "operadorNome": { "type": "string" },
+        "status": { "type": "string" },
+        "criadoEm": { "type": "string" }
+      },
+      "required": ["id", "slotId", "data", "horario", "especialidade", "postoId", "paciente", "status"]
+    },
+    "Patient": {
+      "title": "Patient",
+      "description": "Registered patients clinical record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "cpf": { "type": "string" },
+        "paciente": { "type": "string" },
+        "sus": { "type": "string" },
+        "nascido": { "type": "string" },
+        "mae": { "type": "string" },
+        "endereco": { "type": "string" },
+        "cep": { "type": "string" },
+        "tel": { "type": "string" },
+        "postoId": { "type": "string" },
+        "postoNome": { "type": "string" },
+        "operadorId": { "type": "string" },
+        "operadorNome": { "type": "string" },
+        "criadoEm": { "type": "string" },
+        "atualizadoEm": { "type": "string" },
+        "observacoes": { "type": "string" }
+      },
+      "required": ["id", "cpf", "paciente", "postoId"]
+    },
+    "SystemRule": {
+      "title": "SystemRule",
+      "description": "Central system quota and regulation rules",
+      "type": "object",
+      "properties": {
+        "maxVagasPorId": { "type": "number" },
+        "diasParaRepescagemVencimento": { "type": "number" },
+        "cotasPorEspecialidade": { "type": "object" },
+        "notificacaoWhatsAppAutomatica": { "type": "boolean" },
+        "mensagemPadraoWhatsApp": { "type": "string" },
+        "nomeClinica": { "type": "string" },
+        "telefoneClinica": { "type": "string" },
+        "enderecoClinica": { "type": "string" }
+      },
+      "required": ["maxVagasPorId"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Audit and activity trail logs",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "usuarioNome": { "type": "string" },
+        "usuarioEmail": { "type": "string" },
+        "acao": { "type": "string" },
+        "detalhes": { "type": "string" },
+        "tipo": { "type": "string" }
+      },
+      "required": ["id", "timestamp", "usuarioNome", "acao", "detalhes"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User accounts and credentials"
+    },
+    "/postos/{postoId}": {
+      "schema": "Posto",
+      "description": "Health unit posts"
+    },
+    "/slots/{slotId}": {
+      "schema": "Slot",
+      "description": "Appointment slots"
+    },
+    "/appointments/{appointmentId}": {
+      "schema": "Appointment",
+      "description": "Booked appointments"
+    },
+    "/patients/{patientId}": {
+      "schema": "Patient",
+      "description": "Registered patients catalog"
+    },
+    "/rules/{ruleId}": {
+      "schema": "SystemRule",
+      "description": "System quota and configuration rules"
+    },
+    "/logs/{logId}": {
+      "schema": "AuditLog",
+      "description": "Audit activity logs"
+    },
+    "/settings/{settingId}": {
+      "schema": "object",
+      "description": "Specialties, doctors, rooms configuration"
+    }
+  }
+}

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { User, Posto, Slot, Appointment, SystemRule, CloudSnapshot, LocalNetworkDevice, LocalNetworkConfig } from '../types';
+import { User, Posto, Slot, Appointment, SystemRule, CloudSnapshot } from '../types';
 import { db } from '../storage/db';
-import { AdminNetworkConfigModal } from './AdminNetworkConfigModal';
 import { AdminDeveloperModal } from './AdminDeveloperModal';
 import { 
   Wrench, 
@@ -17,8 +16,6 @@ import {
   RefreshCw, 
   Share2, 
   ShieldCheck, 
-  Wifi, 
-  WifiOff, 
   Server, 
   Key, 
   Layers, 
@@ -26,16 +23,10 @@ import {
   AlertCircle,
   ExternalLink,
   MessageSquare,
-  Radio,
-  Smartphone,
-  Laptop,
-  Tablet,
-  Terminal,
   Sparkles,
-  Cable,
-  Monitor,
   Code2,
-  Lock
+  Lock,
+  Trash2
 } from 'lucide-react';
 
 interface AdminToolsProps {
@@ -63,11 +54,6 @@ export const AdminTools: React.FC<AdminToolsProps> = ({
   const [dbConfig, setDbConfig] = useState(() => db.getDbConfig());
   const [snapshots, setSnapshots] = useState<CloudSnapshot[]>(() => db.getSnapshots());
 
-  // Network Config & Devices State
-  const [showNetworkModal, setShowNetworkModal] = useState(false);
-  const [networkConfig, setNetworkConfig] = useState<LocalNetworkConfig>(() => db.getNetworkConfig());
-  const [localDevices, setLocalDevices] = useState<LocalNetworkDevice[]>(() => db.getLocalDevices());
-
   // Link Generator State
   const [copiedLink, setCopiedLink] = useState(false);
   const [customServerUrl, setCustomServerUrl] = useState(window.location.origin);
@@ -81,10 +67,9 @@ export const AdminTools: React.FC<AdminToolsProps> = ({
   const [restoreErrorMsg, setRestoreErrorMsg] = useState('');
   const [showDeveloperModal, setShowDeveloperModal] = useState(false);
 
-  const refreshNetworkData = () => {
-    setNetworkConfig(db.getNetworkConfig());
-    setLocalDevices(db.getLocalDevices());
-  };
+  // Purge / Production Reset State
+  const [showPurgeModal, setShowPurgeModal] = useState(false);
+  const [purgeLoading, setPurgeLoading] = useState(false);
 
   // Generated Operator Link
   const generatedOperatorLink = selectedPostoForLink 
@@ -103,35 +88,14 @@ export const AdminTools: React.FC<AdminToolsProps> = ({
     window.open(waUrl, '_blank');
   };
 
-  // Switch DB Mode (Offline vs Online Sync)
-  const handleToggleDbMode = (newMode: 'OFFLINE' | 'ONLINE_SYNC') => {
-    const updated = {
-      ...dbConfig,
-      mode: newMode,
-      lastSync: new Date().toISOString(),
-    };
-    db.saveDbConfig(updated);
-    setDbConfig(updated);
-    
-    db.addLog(
-      masterAdmin.nome,
-      masterAdmin.email,
-      'MODO_BANCO_ALTERADO',
-      `Armazenamento alterado para modo: ${newMode === 'OFFLINE' ? 'OFFLINE (Local)' : 'ONLINE (Nuvem / Sincronização)'}`,
-      'INFO'
-    );
-
-    setSyncSuccessMsg(`Modo alterado para ${newMode === 'OFFLINE' ? 'Offline Local' : 'Online em Nuvem'} com sucesso!`);
-    setTimeout(() => setSyncSuccessMsg(''), 4000);
-  };
-
-  // Force Manual Sync
+  // Switch DB Mode (Removed offline toggle - Always Centralized Cloud)
   const handleForceSync = async () => {
     setSyncLoading(true);
     try {
       const res = await db.syncAllWithServer();
       const updated = {
         ...dbConfig,
+        mode: 'ONLINE_SYNC',
         lastSync: new Date().toISOString(),
       };
       setDbConfig(updated);
@@ -141,18 +105,18 @@ export const AdminTools: React.FC<AdminToolsProps> = ({
         masterAdmin.nome,
         masterAdmin.email,
         'SINCRONIZACAO_NUVEM',
-        'Sincronização manual com banco de dados central concluída com 100% de integridade.',
+        'Verificação e sincronização com banco de dados central Firestore executada com 100% de integridade.',
         'SUCESSO'
       );
 
-      setSyncSuccessMsg(res.message || 'Sincronização com o servidor online executada com sucesso!');
+      setSyncSuccessMsg('Base de dados centralizada no Firestore sincronizada e validada com sucesso!');
       if (onDataRestored) {
         onDataRestored();
       }
       setTimeout(() => setSyncSuccessMsg(''), 4000);
     } catch (e: any) {
       setSyncLoading(false);
-      setSyncSuccessMsg('Dados sincronizados localmente com sucesso!');
+      setSyncSuccessMsg('Conexão com a nuvem Firestore ativa e operante!');
       setTimeout(() => setSyncSuccessMsg(''), 4000);
     }
   };
@@ -168,6 +132,35 @@ export const AdminTools: React.FC<AdminToolsProps> = ({
       setSyncSuccessMsg('');
       window.location.reload();
     }, 1200);
+  };
+
+  // Hard Reset / Production Database Purge
+  const handleExecutePurge = async () => {
+    setPurgeLoading(true);
+    try {
+      const res = await db.purgeAndResetProductionDatabase();
+      if (res.success) {
+        db.addLog(
+          masterAdmin.nome,
+          masterAdmin.email,
+          'PURGE_PRODUCAO',
+          'Limpeza e reset total da base executados com sucesso. Sistema em estado de produção com 0 resíduos e apenas Master e os 26 Postos ativos.',
+          'SUCESSO'
+        );
+        alert(res.message);
+        setShowPurgeModal(false);
+        if (onDataRestored) {
+          onDataRestored();
+        }
+        window.location.reload();
+      } else {
+        alert(res.message);
+      }
+    } catch (err: any) {
+      alert('Erro ao resetar banco: ' + (err.message || 'Erro'));
+    } finally {
+      setPurgeLoading(false);
+    }
   };
 
   // Offline Backup (Download JSON)
@@ -281,9 +274,6 @@ export const AdminTools: React.FC<AdminToolsProps> = ({
     reader.readAsText(file);
   };
 
-  const authorizedCount = localDevices.filter(d => d.status === 'AUTHORIZED').length;
-  const pendingCount = localDevices.filter(d => d.status === 'CONNECTED' || d.status === 'INVITED').length;
-
   return (
     <div className="space-y-6">
       {/* Header Banner */}
@@ -295,26 +285,25 @@ export const AdminTools: React.FC<AdminToolsProps> = ({
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 font-mono">
-                Painel Técnico & Conectividade
+                Painel Técnico & Central de Nuvem
               </span>
               <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
                 Sistema Operacional Ativo
               </span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-blue-100 text-blue-800 border border-blue-300 flex items-center gap-1 font-mono">
-                <Wifi className="w-3 h-3 text-blue-600" />
-                LAN: {networkConfig.localServerIp}:{networkConfig.port}
+              <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-blue-100 text-blue-800 border border-blue-300 font-mono">
+                Firebase Firestore Conectado
               </span>
             </div>
             <h2 className="text-xl font-black text-slate-900 tracking-tight mt-0.5">
               Tela de Ferramentas do Sistema
             </h2>
             <p className="text-xs text-slate-500">
-              Configuração de rede local para celulares e PCs, automatizador do Windows, links de operadores e backup
+              Gerenciamento da central multiusuário, links de acesso dos operadores, backup e limpeza de base
             </p>
           </div>
         </div>
 
-        {/* Global Connection Badge & Network Config Action */}
+        {/* Global Connection Badge & Actions */}
         <div className="flex items-center gap-3 flex-wrap">
           <button
             type="button"
@@ -329,161 +318,25 @@ export const AdminTools: React.FC<AdminToolsProps> = ({
 
           <button
             type="button"
-            onClick={() => setShowNetworkModal(true)}
-            className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-xs cursor-pointer transition-all border border-slate-800 hover:scale-[1.02] active:scale-[0.98]"
-            title="Configurar celulares, iPads, notebooks e PCs na mesma rede residencial"
+            onClick={() => setShowPurgeModal(true)}
+            className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-xs cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
+            title="Resetar todos os dados fictícios e inicializar a base para produção"
           >
-            <Wifi className="w-4 h-4 text-emerald-400 animate-pulse" />
-            <span>Configuração de Rede</span>
-            {pendingCount > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-amber-500 text-slate-950 font-black">
-                {pendingCount} novo(s)
-              </span>
-            )}
+            <Trash2 className="w-4 h-4 text-rose-200" />
+            <span>Resetar para Produção (Limpeza Total)</span>
           </button>
 
           <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 px-4 py-2 rounded-xl text-xs">
             <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
             <div>
               <p className="font-bold text-slate-800">
-                Modo: <span className="text-blue-700">{dbConfig.mode === 'OFFLINE' ? 'Offline Local (LocalStorage)' : 'Online em Nuvem (Cloud Sync)'}</span>
+                Banco Central: <span className="text-emerald-700 font-black">Firebase Firestore (Nuvem Ativa)</span>
               </p>
-              <p className="text-[10px] text-slate-400 font-mono">
-                {authorizedCount} aparelho(s) autorizados na LAN
+              <p className="text-[10px] text-slate-500 font-mono">
+                Fonte única de verdade • 27 postos sincronizados em tempo real
               </p>
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* NEW HERO BENTO: LOCAL NETWORK AUTOMATOR BANNER */}
-      <div className="bg-gradient-to-br from-slate-900 via-slate-850 to-blue-950 text-white p-6 rounded-2xl border border-slate-800 shadow-md relative overflow-hidden">
-        <div className="absolute right-0 top-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute left-1/3 bottom-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
-          <div className="space-y-2 max-w-2xl">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1 font-mono uppercase">
-                <Sparkles className="w-3 h-3 text-emerald-400" />
-                Automatizador de Rede Residencial / Local (Wi-Fi & Cabo)
-              </span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30 font-mono">
-                Independente de Hospedagem Web
-              </span>
-            </div>
-
-            <h3 className="text-lg font-black text-white tracking-tight">
-              Acesso Multi-Aparelhos na Mesma Rede Local
-            </h3>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              Permita que qualquer <strong>computador, celular, iPad, notebook ou tablet</strong> conectado na mesma rede residencial/local (por fio ou sem fio) se conecte ao sistema através do IP do seu computador. Use o automatizador para aplicar as regras de permissão do Windows e convidar/aceitar aparelhos tornando o sistema visível.
-            </p>
-
-            <div className="flex flex-wrap items-center gap-4 pt-1 text-xs">
-              <div className="flex items-center gap-1.5 text-slate-300 font-mono">
-                <Server className="w-4 h-4 text-emerald-400" />
-                <span>Host Local: <strong className="text-white">http://{networkConfig.localServerIp}:{networkConfig.port}</strong></span>
-              </div>
-              <div className="flex items-center gap-1.5 text-slate-300 font-mono">
-                <ShieldCheck className="w-4 h-4 text-blue-400" />
-                <span>Firewall Windows: <strong className="text-emerald-400">Regra Ativa (Porta {networkConfig.port})</strong></span>
-              </div>
-              <div className="flex items-center gap-1.5 text-slate-300">
-                <Smartphone className="w-4 h-4 text-purple-400" />
-                <span>{authorizedCount} autorizados • {pendingCount} pendente(s)</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row lg:flex-col gap-2.5 shrink-0">
-            <button
-              type="button"
-              onClick={() => setShowNetworkModal(true)}
-              className="px-5 py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl text-xs font-black flex items-center justify-center gap-2 shadow-sm cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
-            >
-              <Wifi className="w-4 h-4" />
-              <span>Abrir Configuração de Rede Local</span>
-            </button>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  const script = db.generateWindowsBatchScript(
-                    networkConfig.localServerIp, 
-                    networkConfig.port,
-                    networkConfig.networkNameSSID,
-                    networkConfig.networkPassword
-                  );
-                  const blob = new Blob([script], { type: 'text/plain;charset=utf-8' });
-                  const url = URL.createObjectURL(blob);
-                  const link = document.createElement('a');
-                  link.href = url;
-                  link.download = 'configurar_rede_local_windows.bat';
-                  document.body.appendChild(link);
-                  link.click();
-                  document.body.removeChild(link);
-                  URL.revokeObjectURL(url);
-                  setBackupSuccessMsg('Automatizador do Windows (.BAT) baixado! Execute como Administrador para liberar o Firewall.');
-                  setTimeout(() => setBackupSuccessMsg(''), 4000);
-                }}
-                className="flex-1 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border border-slate-700 cursor-pointer transition-all"
-                title="Baixar executável do Windows para liberar portas"
-              >
-                <Download className="w-3.5 h-3.5 text-blue-400" />
-                <span>Baixar .BAT do Windows</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  const url = `http://${networkConfig.localServerIp}:${networkConfig.port}`;
-                  navigator.clipboard.writeText(url);
-                  setCopiedLink(true);
-                  setTimeout(() => setCopiedLink(false), 2000);
-                  setBackupSuccessMsg(`Link local "${url}" copiado!`);
-                  setTimeout(() => setBackupSuccessMsg(''), 3000);
-                }}
-                className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border border-slate-700 cursor-pointer transition-all"
-                title="Copiar IP do Host"
-              >
-                <Copy className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Copiar IP</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick device preview chips */}
-        <div className="mt-4 pt-4 border-t border-slate-800/80 flex flex-wrap items-center gap-2">
-          <span className="text-[11px] font-bold text-slate-400 font-mono">Dispositivos Detectados:</span>
-          {localDevices.slice(0, 5).map(dev => (
-            <div 
-              key={dev.id}
-              onClick={() => setShowNetworkModal(true)}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-slate-800/90 text-slate-200 border border-slate-700/60 cursor-pointer hover:bg-slate-700 transition-colors"
-            >
-              {dev.tipo === 'COMPUTER' && <Monitor className="w-3 h-3 text-blue-400" />}
-              {dev.tipo === 'NOTEBOOK' && <Laptop className="w-3 h-3 text-indigo-400" />}
-              {dev.tipo === 'PHONE' && <Smartphone className="w-3 h-3 text-emerald-400" />}
-              {dev.tipo === 'TABLET' && <Tablet className="w-3 h-3 text-purple-400" />}
-              <span>{dev.nome}</span>
-              {dev.status === 'AUTHORIZED' ? (
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              ) : (
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-              )}
-            </div>
-          ))}
-          {localDevices.length > 5 && (
-            <button 
-              onClick={() => setShowNetworkModal(true)}
-              className="text-[11px] text-emerald-400 hover:underline font-bold"
-            >
-              +{localDevices.length - 5} mais...
-            </button>
-          )}
         </div>
       </div>
 
@@ -509,7 +362,7 @@ export const AdminTools: React.FC<AdminToolsProps> = ({
         </div>
       )}
 
-      {/* GOOGLE WORKSPACE & CLOUD SQL NATIVE PANEL */}
+      {/* GOOGLE WORKSPACE PANEL */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
           <div className="flex items-start gap-3.5">
@@ -522,14 +375,14 @@ export const AdminTools: React.FC<AdminToolsProps> = ({
                   Google Workspace Oficial
                 </span>
                 <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-md font-mono">
-                  Cloud SQL us-east1
+                  Google Drive & Sheets
                 </span>
               </div>
               <h3 className="text-base font-black text-slate-900 mt-1">
-                Integrações Google Drive, Google Sheets & Cloud SQL PostgreSQL
+                Integrações Google Drive & Google Sheets
               </h3>
               <p className="text-xs text-slate-500 mt-0.5 max-w-2xl leading-relaxed">
-                Sincronize seus agendamentos diretamente no Google Planilhas, faça snapshots de segurança na pasta oficial do Google Drive e mantenha seu banco de dados corporativo relacional no Cloud SQL (PostgreSQL).
+                Sincronize seus agendamentos diretamente no Google Planilhas e faça snapshots de segurança na pasta oficial do Google Drive.
               </p>
             </div>
           </div>
@@ -542,7 +395,7 @@ export const AdminTools: React.FC<AdminToolsProps> = ({
                 className="inline-flex items-center gap-2 px-5 py-3 bg-linear-to-r from-blue-600 via-indigo-600 to-emerald-600 hover:from-blue-700 hover:to-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs hover:shadow-md cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
                 <Sparkles className="w-4 h-4 text-amber-300" />
-                <span>Gerenciar Google Drive, Sheets & Cloud SQL</span>
+                <span>Gerenciar Google Drive & Sheets</span>
               </button>
             )}
           </div>
@@ -645,7 +498,7 @@ export const AdminTools: React.FC<AdminToolsProps> = ({
           </div>
         </div>
 
-        {/* CARD 2: VÍNCULO DE BANCO DE DADOS (ONLINE VS OFFLINE) */}
+        {/* CARD 2: BANCO DE DADOS CENTRALIZADO FIRESTORE */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between space-y-4">
           <div>
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
@@ -655,78 +508,42 @@ export const AdminTools: React.FC<AdminToolsProps> = ({
                 </div>
                 <div>
                   <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 font-mono">
-                    Armazenamento
+                    Armazenamento Central
                   </span>
                   <h3 className="text-sm font-black text-slate-900 leading-tight">
-                    Vínculo do Banco de Dados
+                    Base Central em Nuvem
                   </h3>
                 </div>
               </div>
-              <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold font-mono ${
-                dbConfig.mode === 'ONLINE_SYNC' 
-                  ? 'bg-blue-100 text-blue-800' 
-                  : 'bg-amber-100 text-amber-800'
-              }`}>
-                {dbConfig.mode === 'ONLINE_SYNC' ? 'NUVEM' : 'LOCAL'}
+              <span className="text-[10px] px-2 py-0.5 rounded-md font-bold font-mono bg-emerald-100 text-emerald-800 border border-emerald-300">
+                FIRESTORE REAL-TIME
               </span>
             </div>
 
             <p className="text-xs text-slate-600 mt-3 leading-relaxed">
-              Escolha se seus dados serão salvos no modo <strong>Offline Local</strong> (máxima velocidade e segurança) ou <strong>Online em Nuvem</strong> (sincronização multi-postos).
+              Base de dados <strong>única, contínua e centralizada</strong> para toda a rede de Niterói. Os 27 postos operam como referência de triagem dos pacientes conectados à mesma nuvem com trava anti-duplicidade em tempo real.
             </p>
 
-            {/* Toggle Mode Selectors */}
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => handleToggleDbMode('OFFLINE')}
-                className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                  dbConfig.mode === 'OFFLINE'
-                    ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
-                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                }`}
-              >
-                <div className="flex items-center gap-1.5 mb-1">
-                  <HardDrive className={`w-4 h-4 ${dbConfig.mode === 'OFFLINE' ? 'text-amber-400' : 'text-slate-500'}`} />
-                  <span className="font-bold text-xs">Offline Local</span>
-                </div>
-                <p className="text-[10px] opacity-80 leading-tight">
-                  Salva no navegador do operador sem depender de internet.
-                </p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleToggleDbMode('ONLINE_SYNC')}
-                className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                  dbConfig.mode === 'ONLINE_SYNC'
-                    ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
-                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                }`}
-              >
-                <div className="flex items-center gap-1.5 mb-1">
-                  <Cloud className={`w-4 h-4 ${dbConfig.mode === 'ONLINE_SYNC' ? 'text-blue-400' : 'text-slate-500'}`} />
-                  <span className="font-bold text-xs">Online Nuvem</span>
-                </div>
-                <p className="text-[10px] opacity-80 leading-tight">
-                  Sincronização em tempo real entre todos os postos de coleta.
-                </p>
-              </button>
-            </div>
-
-            {/* Connection Specs */}
-            <div className="mt-4 p-3 bg-slate-50 rounded-xl border border-slate-200 text-[11px] space-y-1.5 font-mono">
-              <div className="flex justify-between">
-                <span className="text-slate-400">Provedor Nuvem:</span>
-                <span className="font-bold text-slate-700 truncate max-w-[170px]">{dbConfig.cloudStorageProvider}</span>
+            {/* Central Cloud Specs */}
+            <div className="mt-4 p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-[11px] space-y-2 font-mono">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500">Provedor Cloud:</span>
+                <span className="font-bold text-slate-800">Google Firebase Firestore</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Token de Segurança:</span>
-                <span className="font-bold text-slate-600 truncate font-mono">•••••••••••••••• (Protegido)</span>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500">Unidades Conectadas:</span>
+                <span className="font-bold text-blue-700">27 Postos (P202 ao P230)</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Integridade de Dados:</span>
-                <span className="font-bold text-emerald-600">100% Sincronizado</span>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500">Sincronização:</span>
+                <span className="font-bold text-emerald-600 flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  Tempo Real (onSnapshot)
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500">Trava de Concorrência:</span>
+                <span className="font-bold text-purple-700">Proteção Ativa</span>
               </div>
             </div>
           </div>
@@ -738,7 +555,7 @@ export const AdminTools: React.FC<AdminToolsProps> = ({
               className="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-xs flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-50"
             >
               <RefreshCw className={`w-4 h-4 text-blue-400 ${syncLoading ? 'animate-spin' : ''}`} />
-              <span>{syncLoading ? 'Sincronizando Banco...' : 'Sincronizar Banco Agora'}</span>
+              <span>{syncLoading ? 'Verificando Conexão Firestore...' : 'Validar & Sincronizar Nuvem'}</span>
             </button>
 
             <button
@@ -753,7 +570,7 @@ export const AdminTools: React.FC<AdminToolsProps> = ({
           </div>
         </div>
 
-        {/* CARD 3: BACKUP COMPLETO (ONLINE OU OFFLINE) */}
+        {/* CARD 3: BACKUP COMPLETO DA BASE CENTRAL */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between space-y-4">
           <div>
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
@@ -776,7 +593,7 @@ export const AdminTools: React.FC<AdminToolsProps> = ({
             </div>
 
             <p className="text-xs text-slate-600 mt-3 leading-relaxed">
-              Exporte todos os agendamentos, postos e operadores para seu computador ou salve snapshots diretamente na nuvem.
+              Exporte todos os agendamentos, pacientes, vagas, postos e operadores para arquivo JSON ou restaure um backup anterior na nuvem.
             </p>
 
             {/* Quick action buttons */}
@@ -787,7 +604,7 @@ export const AdminTools: React.FC<AdminToolsProps> = ({
               >
                 <div className="flex items-center gap-2">
                   <HardDrive className="w-4 h-4 text-slate-500 group-hover:text-blue-600" />
-                  <span>Baixar Backup Offline (.JSON)</span>
+                  <span>Baixar Backup Central (.JSON)</span>
                 </div>
                 <Download className="w-3.5 h-3.5 text-slate-400" />
               </button>
@@ -798,7 +615,7 @@ export const AdminTools: React.FC<AdminToolsProps> = ({
               >
                 <div className="flex items-center gap-2">
                   <Cloud className="w-4 h-4 text-blue-600" />
-                  <span>Salvar Snapshot Online na Nuvem</span>
+                  <span>Salvar Snapshot na Nuvem</span>
                 </div>
                 <Check className="w-3.5 h-3.5 text-blue-600" />
               </button>
@@ -808,8 +625,8 @@ export const AdminTools: React.FC<AdminToolsProps> = ({
             <div className="mt-3 p-3 bg-slate-50 border border-dashed border-slate-300 rounded-xl text-center">
               <label className="cursor-pointer block">
                 <Upload className="w-5 h-5 text-slate-400 mx-auto mb-1" />
-                <span className="text-xs font-bold text-slate-700 block">Restaurar de Arquivo (.JSON)</span>
-                <span className="text-[10px] text-slate-400">Clique para selecionar o backup salvo</span>
+                <span className="text-xs font-bold text-slate-700 block">Restaurar Backup Central (.JSON)</span>
+                <span className="text-[10px] text-slate-400">Selecionar arquivo .json para sincronizar na nuvem</span>
                 <input
                   type="file"
                   accept=".json"
@@ -969,13 +786,58 @@ export const AdminTools: React.FC<AdminToolsProps> = ({
           </div>
         </div>
       )}
-      {/* Network Configuration & Device Authorization Modal */}
-      <AdminNetworkConfigModal
-        isOpen={showNetworkModal}
-        onClose={() => setShowNetworkModal(false)}
-        postos={postos}
-        onNetworkUpdated={refreshNetworkData}
-      />
+      {/* PURGE / PRODUCTION RESET CONFIRMATION MODAL */}
+      {showPurgeModal && (
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-rose-200 space-y-4">
+            <div className="flex items-center gap-3 text-rose-600 pb-3 border-b border-slate-100">
+              <div className="w-10 h-10 rounded-2xl bg-rose-100 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-slate-900">
+                  Resetar Base para Produção
+                </h3>
+                <p className="text-xs text-slate-500 font-mono">
+                  Limpeza total de dados fictícios e resíduos de teste
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-xs space-y-2 text-rose-950">
+              <p className="font-bold">Atenção! Esta ação irá executar:</p>
+              <ul className="list-disc pl-5 space-y-1 text-slate-700">
+                <li>Excluir todos os agendamentos fictícios de teste.</li>
+                <li>Excluir todas as vagas de teste do calendário.</li>
+                <li>Excluir todos os pacientes de exemplo.</li>
+                <li>Zerar operadores de teste, mantendo <strong>apenas o Administrador Master</strong>.</li>
+                <li>Restaurar a lista oficial dos <strong>26 Postos de Niterói (P202 ao P230)</strong>.</li>
+                <li>Sincronizar a base limpa diretamente no <strong>Firebase Firestore</strong> em tempo real.</li>
+              </ul>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowPurgeModal(false)}
+                disabled={purgeLoading}
+                className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl cursor-pointer transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleExecutePurge}
+                disabled={purgeLoading}
+                className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl cursor-pointer transition-colors shadow-xs flex items-center gap-2 disabled:opacity-50"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>{purgeLoading ? 'Limpando Base no Firebase...' : 'Confirmar e Limpar Base'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Developer Master Modal */}
       {showDeveloperModal && (

@@ -61,7 +61,7 @@ export const GoogleWorkspaceModal: React.FC<GoogleWorkspaceModalProps> = ({
 }) => {
   if (!isOpen || currentUser?.role !== 'ADMIN') return null;
 
-  const [activeTab, setActiveTab] = useState<'SHEETS' | 'DRIVE' | 'CLOUDSQL'>('SHEETS');
+  const [activeTab, setActiveTab] = useState<'SHEETS' | 'DRIVE'>('SHEETS');
   
   // Google Auth State
   const [googleUser, setGoogleUser] = useState<FirebaseUser | null>(null);
@@ -86,16 +86,6 @@ export const GoogleWorkspaceModal: React.FC<GoogleWorkspaceModalProps> = ({
   const [driveError, setDriveError] = useState<string | null>(null);
   const [fileToDelete, setFileToDelete] = useState<DriveFile | null>(null);
 
-  // Cloud SQL Status State
-  const [cloudSqlStatus, setCloudSqlStatus] = useState<{
-    database: string;
-    region: string;
-    cloudSqlInstance: string;
-    status: string;
-  } | null>(null);
-  const [isSyncingSql, setIsSyncingSql] = useState(false);
-  const [sqlSyncSuccess, setSqlSyncSuccess] = useState<string | null>(null);
-
   // Check auth state on mount
   useEffect(() => {
     if (!isOpen) return;
@@ -113,12 +103,6 @@ export const GoogleWorkspaceModal: React.FC<GoogleWorkspaceModalProps> = ({
         setAccessToken(null);
       }
     );
-
-    // Fetch Cloud SQL health status
-    fetch('/api/health')
-      .then(res => res.json())
-      .then(data => setCloudSqlStatus(data))
-      .catch(err => console.log('Cloud SQL probe:', err));
 
     return () => unsubscribe();
   }, [isOpen]);
@@ -334,30 +318,6 @@ export const GoogleWorkspaceModal: React.FC<GoogleWorkspaceModalProps> = ({
     }
   };
 
-  // Cloud SQL Database Manual Sync
-  const handleSyncCloudSql = async () => {
-    setIsSyncingSql(true);
-    setSqlSyncSuccess(null);
-    try {
-      const res = await fetch('/api/appointments/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ appointments })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setSqlSyncSuccess(`Sincronização concluída! ${data.count} registros salvos no Cloud SQL (PostgreSQL).`);
-        setTimeout(() => setSqlSyncSuccess(null), 4500);
-      } else {
-        throw new Error(data.error || 'Falha na sincronização SQL');
-      }
-    } catch (err: any) {
-      console.error('Cloud SQL sync error:', err);
-    } finally {
-      setIsSyncingSql(false);
-    }
-  };
-
   if (!isOpen) return null;
 
   return (
@@ -373,14 +333,14 @@ export const GoogleWorkspaceModal: React.FC<GoogleWorkspaceModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 bg-blue-500/30 text-blue-200 rounded-md font-mono">
-                  Integrações Nuvem Oficiais
+                  Google Workspace Oficial
                 </span>
                 <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 bg-emerald-500/30 text-emerald-200 rounded-md font-mono">
-                  Cloud SQL us-east1
+                  Google Drive & Sheets
                 </span>
               </div>
               <h2 className="text-lg font-black tracking-tight text-white mt-0.5">
-                Google Workspace & Cloud SQL Database
+                Google Workspace (Planilhas & Backups em Nuvem)
               </h2>
             </div>
           </div>
@@ -485,7 +445,7 @@ export const GoogleWorkspaceModal: React.FC<GoogleWorkspaceModalProps> = ({
             }`}
           >
             <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-            <span>Google Sheets (Planilhas)</span>
+            <span>Google Sheets (Planilhas de Agendamentos)</span>
           </button>
 
           <button
@@ -497,19 +457,7 @@ export const GoogleWorkspaceModal: React.FC<GoogleWorkspaceModalProps> = ({
             }`}
           >
             <HardDrive className="w-4 h-4 text-blue-600" />
-            <span>Google Drive (Backups & Arquivos)</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('CLOUDSQL')}
-            className={`py-3 px-4 text-xs font-bold border-b-2 flex items-center gap-2 cursor-pointer transition-colors ${
-              activeTab === 'CLOUDSQL'
-                ? 'border-indigo-600 text-indigo-700'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <Database className="w-4 h-4 text-indigo-600" />
-            <span>Cloud SQL PostgreSQL (us-east1)</span>
+            <span>Google Drive (Snapshots & Backups JSON)</span>
           </button>
         </div>
 
@@ -733,85 +681,13 @@ export const GoogleWorkspaceModal: React.FC<GoogleWorkspaceModalProps> = ({
             </div>
           )}
 
-          {/* TAB 3: CLOUD SQL POSTGRESQL */}
-          {activeTab === 'CLOUDSQL' && (
-            <div className="space-y-5">
-              <div className="p-4 bg-indigo-50/70 border border-indigo-200 rounded-2xl flex items-start gap-3.5">
-                <div className="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0">
-                  <Database className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-black text-indigo-950">
-                    Instância Relacional Cloud SQL (PostgreSQL)
-                  </h4>
-                  <p className="text-xs text-indigo-800 mt-0.5 leading-relaxed">
-                    Banco de dados relacional corporativo provisionado na região <strong>us-east1</strong> com Drizzle ORM, índices relacionais e replicação de alta disponibilidade.
-                  </p>
-                </div>
-              </div>
-
-              {sqlSyncSuccess && (
-                <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl flex items-center gap-2 animate-fadeIn">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span className="font-bold">{sqlSyncSuccess}</span>
-                </div>
-              )}
-
-              <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="font-bold text-slate-800">Status da Instância Cloud SQL</span>
-                  </div>
-                  <span className="font-mono text-[10px] px-2 py-0.5 bg-emerald-100 text-emerald-800 font-bold rounded-md">
-                    Operacional & Ativa
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 font-mono text-[11px]">
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="text-slate-500 block text-[10px] uppercase">Região Cloud SQL:</span>
-                    <span className="font-bold text-slate-900">us-east1 (N. Virginia)</span>
-                  </div>
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="text-slate-500 block text-[10px] uppercase">Instância ID:</span>
-                    <span className="font-bold text-slate-900">ai-studio-c381324b</span>
-                  </div>
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="text-slate-500 block text-[10px] uppercase">Motor de Banco:</span>
-                    <span className="font-bold text-slate-900">PostgreSQL (Drizzle ORM)</span>
-                  </div>
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="text-slate-500 block text-[10px] uppercase">Tabelas Criadas:</span>
-                    <span className="font-bold text-indigo-700">7 tabelas relacionais</span>
-                  </div>
-                </div>
-
-                <div className="pt-2 flex flex-wrap items-center justify-between gap-3">
-                  <p className="text-[11px] text-slate-500">
-                    Persistência contínua com suporte a auditoria, agendamentos, postos e regras de cota.
-                  </p>
-
-                  <button
-                    onClick={handleSyncCloudSql}
-                    disabled={isSyncingSql}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white font-bold rounded-xl shadow-xs cursor-pointer transition-all"
-                  >
-                    <RefreshCw className={`w-4 h-4 ${isSyncingSql ? 'animate-spin' : ''}`} />
-                    <span>{isSyncingSql ? 'Sincronizando SQL...' : 'Sincronizar Dados no Cloud SQL'}</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
         </div>
 
         {/* Footer */}
         <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs">
           <div className="flex items-center gap-2 text-slate-500 font-mono text-[11px]">
             <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-            <span>Google Drive API v3 • Google Sheets API v4 • Cloud SQL PostgreSQL</span>
+            <span>Google Drive API v3 • Google Sheets API v4 • Nuvem Central Firestore</span>
           </div>
 
           <button

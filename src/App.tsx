@@ -57,8 +57,20 @@ export default function App() {
     setWhatsAppModalState({ appointment: app, isCustomPhoneMode });
   };
 
-  // Sync users, rules, postos, slots, and appointments with Cloud API on mount and background interval
+  // Sync users, rules, postos, slots, and appointments with Cloud API on mount, real-time Firestore events, and background interval
   useEffect(() => {
+    const refreshStateFromDb = () => {
+      setUsers(db.getUsers());
+      setPostos(db.getPostos());
+      setSlots(db.getSlots());
+      setAppointments(db.getAppointments());
+      setPatients(db.getPatients());
+      setRules(db.getRules());
+    };
+
+    // Listen to real-time Firebase Firestore updates
+    window.addEventListener('clinica_db_updated', refreshStateFromDb);
+
     db.fetchServerUsers().then(serverUsers => {
       if (serverUsers && serverUsers.length > 0) {
         setUsers(serverUsers);
@@ -135,7 +147,10 @@ export default function App() {
       });
     }, 3500);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('clinica_db_updated', refreshStateFromDb);
+    };
   }, []);
 
   // Session and active tab sync
@@ -292,6 +307,33 @@ export default function App() {
   };
 
   const handleLogout = async () => {
+    // Se o usuário for o Administrador Master, gera e baixa automaticamente o backup completo do sistema
+    if (currentUser && currentUser.role === 'ADMIN') {
+      try {
+        const jsonStr = db.exportFullBackupJson();
+        const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        const dateStr = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        link.href = url;
+        link.download = `backup_central_master_${dateStr}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        db.addLog(
+          currentUser.nome,
+          currentUser.email,
+          'BACKUP_AUTOMATICO_LOGOUT_MASTER',
+          `Backup completo de segurança (.json) exportado automaticamente no logout do Administrador Master.`,
+          'SUCESSO'
+        );
+      } catch (backupErr) {
+        console.warn('Erro ao gerar backup automático no logout do Master:', backupErr);
+      }
+    }
+
     const sessId = db.getSessionId();
     if (currentUser && sessId) {
       try {

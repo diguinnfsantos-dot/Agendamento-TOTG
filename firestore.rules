@@ -1,0 +1,47 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Default open read/write for system collections in our dedicated municipal environment
+    match /users/{userId} {
+      allow read, write: if true;
+    }
+    
+    match /postos/{postoId} {
+      allow read: if true;
+      allow write: if true;
+    }
+    
+    match /slots/{slotId} {
+      allow read, write: if true;
+    }
+    
+    match /appointments/{appointmentId} {
+      allow read, write: if true;
+    }
+    
+    match /patients/{patientId} {
+      allow read, write: if true;
+    }
+    
+    match /rules/{ruleId} {
+      allow read, write: if true;
+    }
+    
+    match /logs/{logId} {
+      allow read, write: if true;
+    }
+    
+    match /settings/{settingId} {
+      allow read, write: if true;
+    }
+    
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

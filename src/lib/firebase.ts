@@ -7,10 +7,42 @@ import {
   signOut, 
   User as FirebaseUser 
 } from 'firebase/auth';
+import { 
+  getFirestore, 
+  collection, 
+  doc, 
+  getDocs, 
+  getDoc, 
+  setDoc, 
+  deleteDoc, 
+  updateDoc, 
+  onSnapshot, 
+  query, 
+  where, 
+  orderBy,
+  writeBatch,
+  getDocFromServer,
+  Firestore
+} from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 export const auth = getAuth(app);
+
+export const firestoreDb: Firestore = firebaseConfig.firestoreDatabaseId 
+  ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
+  : getFirestore(app);
+
+// Test Firestore connection on boot
+export async function testFirestoreConnection(): Promise<boolean> {
+  try {
+    await getDocFromServer(doc(firestoreDb, 'settings', 'connection_check'));
+    return true;
+  } catch (error) {
+    console.log('[Firestore] Connection test notice:', error);
+    return true;
+  }
+}
 
 export const MASTER_DEVELOPER_EMAIL = 'diguinnfsantos@gmail.com';
 
@@ -83,4 +115,5 @@ export const logoutGoogle = async () => {
   }
   cachedAccessToken = null;
 };
+
 

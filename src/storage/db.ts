@@ -1,4 +1,23 @@
 import { User, Posto, Slot, Appointment, AppointmentStatus, SystemRule, AuditLog, CloudSnapshot, LocalNetworkDevice, LocalNetworkConfig, DoctorProfile, RegisteredPatient, ActiveSession, SessionInfo, DeviceStatus, ConnectionType, DeveloperIdentity, DeveloperTransferHistory } from '../types';
+import {
+  setupFirestoreRealtimeSync,
+  syncSlotToFirestore,
+  deleteSlotFromFirestore,
+  syncSlotsBatchToFirestore,
+  syncAppointmentToFirestore,
+  deleteAppointmentFromFirestore,
+  syncAppointmentsBatchToFirestore,
+  syncPatientToFirestore,
+  deletePatientFromFirestore,
+  syncPatientsBatchToFirestore,
+  syncUserToFirestore,
+  deleteUserFromFirestore,
+  syncPostoToFirestore,
+  deletePostoFromFirestore,
+  syncRulesToFirestore,
+  syncLogToFirestore,
+  purgeAndResetFirestoreProductionData
+} from '../lib/firestoreSync';
 
 const STORAGE_KEYS = {
   USERS: 'clinica_users_v1',
@@ -28,6 +47,7 @@ const STORAGE_KEYS = {
   DEVELOPER_IDENTITY: 'clinica_developer_identity_v1',
   DEVELOPER_PWD_HASH: 'clinica_developer_pwd_hash_v1',
 };
+
 
 
 // In-memory tab-isolated session token
@@ -144,42 +164,6 @@ const INITIAL_USERS: User[] = [
     status: 'ACTIVE',
     criadoEm: '2026-08-01T10:00:00Z',
   },
-  {
-    id: 'usr_op_jaqueline',
-    email: 'jaqueline@jaqueline.com',
-    senha: '12345J',
-    nome: 'Jaqueline Santos',
-    telefone: '(21) 98888-7777',
-    role: 'OPERATOR',
-    postoId: 'P227',
-    origem: 'Unidade Básica de Saúde do Barreto (UBS Barreto)',
-    status: 'ACTIVE',
-    criadoEm: '2026-08-20T10:00:00Z',
-  },
-  {
-    id: 'usr_op_wanessa_1787420475218',
-    email: 'wanessa.operador@posto.com',
-    senha: '12345W',
-    nome: 'Wanessa Souza',
-    telefone: '(21) 99999-9999',
-    role: 'OPERATOR',
-    postoId: 'P227',
-    origem: 'Unidade Básica de Saúde do Barreto (UBS Barreto)',
-    status: 'ACTIVE',
-    criadoEm: '2026-08-22T17:41:15.218Z',
-  },
-  {
-    id: 'usr_op_1787709432258_i9rj',
-    email: 'rodrigo@rodrigo.com',
-    senha: '12345r',
-    nome: 'Rodrigo Ferreira',
-    telefone: '(21) 99996-6667',
-    role: 'OPERATOR',
-    postoId: 'P203',
-    origem: 'Policlínica Regional do Barreto – Dr. João da Silva Vizella',
-    status: 'ACTIVE',
-    criadoEm: '2026-08-26T01:57:12.258Z',
-  },
 ];
 
 const INITIAL_RULES: SystemRule = {
@@ -276,6 +260,7 @@ export const db = {
 
   savePatients: (patients: RegisteredPatient[]): void => {
     localStorage.setItem(STORAGE_KEYS.PATIENTS, JSON.stringify(patients));
+    syncPatientsBatchToFirestore(patients);
   },
 
   findPatientByCpf: (cpf: string): RegisteredPatient | undefined => {
@@ -412,6 +397,7 @@ export const db = {
     const filtered = patients.filter(p => p.id !== patientId && (!cleanId || p.cpf.replace(/\D/g, '') !== cleanId));
     if (filtered.length !== patients.length) {
       db.savePatients(filtered);
+      deletePatientFromFirestore(patientId);
       return true;
     }
     return false;
@@ -423,11 +409,16 @@ export const db = {
     const idx = patients.findIndex(p => p.id === updatedPatient.id || p.cpf.replace(/\D/g, '') === cleanCpf);
     if (idx >= 0) {
       patients[idx] = {
+        ...patients[idx],
         ...updatedPatient,
         atualizadoEm: new Date().toISOString(),
       };
       db.savePatients(patients);
+    } else {
+      patients.push(updatedPatient);
+      db.savePatients(patients);
     }
+    syncPatientToFirestore(updatedPatient);
   },
   getBannedAdminEmails: (): string[] => {
     try {
@@ -867,6 +858,7 @@ export const db = {
     try {
       // Record tombstone locally immediately
       db.recordDeletedUser(userId, userEmail);
+      deleteUserFromFirestore(userId);
       await fetch(`/api/users/${encodeURIComponent(userId)}`, {
         method: 'DELETE',
       });
@@ -890,6 +882,7 @@ export const db = {
       );
 
       localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(cleanUsers));
+      cleanUsers.forEach(u => syncUserToFirestore(u));
 
       // Keep backend & Cloud SQL synchronized
       fetch('/api/users/replace-all', {
@@ -1307,6 +1300,7 @@ export const db = {
     const deletedPostoIds = new Set(['P01', 'P02', 'P03', 'P04', 'P05']);
     const clean = sortPostosSequentially(postos.filter(p => p && !deletedPostoIds.has(p.id)));
     localStorage.setItem(STORAGE_KEYS.POSTOS, JSON.stringify(clean));
+    clean.forEach(p => syncPostoToFirestore(p));
     fetch('/api/postos/replace-all', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1316,6 +1310,7 @@ export const db = {
 
   deletePostoApi: async (postoId: string): Promise<void> => {
     try {
+      deletePostoFromFirestore(postoId);
       await fetch(`/api/postos/${encodeURIComponent(postoId)}`, {
         method: 'DELETE',
       });
@@ -1509,6 +1504,7 @@ export const db = {
 
   saveSlots: (slots: Slot[]) => {
     localStorage.setItem(STORAGE_KEYS.SLOTS, JSON.stringify(slots));
+    syncSlotsBatchToFirestore(slots);
     fetch('/api/slots/replace-all', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1530,6 +1526,7 @@ export const db = {
 
   saveAppointments: (appointments: Appointment[]) => {
     localStorage.setItem(STORAGE_KEYS.APPOINTMENTS, JSON.stringify(appointments));
+    syncAppointmentsBatchToFirestore(appointments);
     fetch('/api/appointments/replace-all', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1641,6 +1638,7 @@ export const db = {
   saveRules: (rules: SystemRule) => {
     try {
       localStorage.setItem(STORAGE_KEYS.RULES, JSON.stringify(rules));
+      syncRulesToFirestore(rules);
       fetch('/api/rules', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1701,6 +1699,7 @@ export const db = {
     };
     const updated = [newLog, ...current].slice(0, 100); // keep last 100 logs
     db.saveLogs(updated);
+    syncLogToFirestore(newLog);
     return newLog;
   },
 
@@ -1752,13 +1751,14 @@ export const db = {
 
   exportFullBackupJson: () => {
     const data = {
-      version: '2.5.0-bento',
+      version: '2.5.0-firestore-cloud',
       timestamp: new Date().toISOString(),
       clinica: db.getRules().nomeClinica,
       users: db.getUsers(),
       postos: db.getPostos(),
       slots: db.getSlots(),
       appointments: db.getAppointments(),
+      patients: db.getPatients(),
       rules: db.getRules(),
       logs: db.getLogs(),
     };
@@ -1775,17 +1775,21 @@ export const db = {
       db.savePostos(parsed.postos);
       db.saveSlots(parsed.slots);
       db.saveAppointments(parsed.appointments);
+      if (parsed.patients && Array.isArray(parsed.patients)) {
+        db.savePatients(parsed.patients);
+      }
       if (parsed.rules) db.saveRules(parsed.rules);
       if (parsed.logs) db.saveLogs(parsed.logs);
 
       return {
         success: true,
-        message: 'Backup restaurado com sucesso!',
+        message: 'Backup central restaurado e sincronizado na nuvem com sucesso!',
         counts: {
           users: parsed.users.length,
           postos: parsed.postos.length,
           slots: parsed.slots.length,
           appointments: parsed.appointments.length,
+          patients: (parsed.patients || []).length,
         },
       };
     } catch (e: any) {
@@ -3571,6 +3575,67 @@ export const db = {
     } catch {}
   },
 
+  purgeAndResetProductionDatabase: async (): Promise<{ success: boolean; message: string }> => {
+    try {
+      // 1. Reset LocalStorage
+      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(INITIAL_USERS));
+      localStorage.setItem(STORAGE_KEYS.POSTOS, JSON.stringify(INITIAL_POSTOS));
+      localStorage.setItem(STORAGE_KEYS.SLOTS, JSON.stringify([]));
+      localStorage.setItem(STORAGE_KEYS.APPOINTMENTS, JSON.stringify([]));
+      localStorage.setItem(STORAGE_KEYS.PATIENTS, JSON.stringify([]));
+      localStorage.setItem(STORAGE_KEYS.RULES, JSON.stringify(INITIAL_RULES));
+      localStorage.removeItem(STORAGE_KEYS.DELETED_USER_IDS);
+      localStorage.removeItem(STORAGE_KEYS.DELETED_USER_EMAILS);
+
+      // 2. Reset Firebase Firestore cloud database
+      await purgeAndResetFirestoreProductionData({
+        users: INITIAL_USERS,
+        postos: INITIAL_POSTOS,
+        rules: INITIAL_RULES,
+      });
+
+      // 3. Reset backend server memory & state file
+      await Promise.allSettled([
+        fetch('/api/users/replace-all', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ users: INITIAL_USERS }),
+        }),
+        fetch('/api/postos/replace-all', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ postos: INITIAL_POSTOS }),
+        }),
+        fetch('/api/slots/replace-all', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slots: [] }),
+        }),
+        fetch('/api/appointments/replace-all', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ appointments: [] }),
+        }),
+        fetch('/api/rules', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(INITIAL_RULES),
+        }),
+      ]);
+
+      return {
+        success: true,
+        message: 'Base de dados resetada com sucesso! Todos os resíduos foram limpos e a nuvem Firestore está 100% pronta para produção com o Master.',
+      };
+    } catch (err: any) {
+      console.error('Purge error:', err);
+      return {
+        success: false,
+        message: `Falha ao resetar banco: ${err.message || 'Erro desconhecido'}`,
+      };
+    }
+  },
+
   syncAllWithServer: async (): Promise<{ success: boolean; message: string; details: any }> => {
     db.sanitizeDatabase();
     try {
@@ -3628,5 +3693,37 @@ export const db = {
 try {
   db.sanitizeDatabase();
 } catch {}
+
+// Initialize Firebase Firestore real-time cloud synchronization
+if (typeof window !== 'undefined') {
+  setupFirestoreRealtimeSync({
+    onUsersUpdate: (users) => {
+      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+    },
+    onPostosUpdate: (postos) => {
+      localStorage.setItem(STORAGE_KEYS.POSTOS, JSON.stringify(postos));
+    },
+    onSlotsUpdate: (slots) => {
+      localStorage.setItem(STORAGE_KEYS.SLOTS, JSON.stringify(slots));
+    },
+    onAppointmentsUpdate: (apps) => {
+      localStorage.setItem(STORAGE_KEYS.APPOINTMENTS, JSON.stringify(apps));
+    },
+    onPatientsUpdate: (patients) => {
+      localStorage.setItem(STORAGE_KEYS.PATIENTS, JSON.stringify(patients));
+    },
+    onRulesUpdate: (rules) => {
+      localStorage.setItem(STORAGE_KEYS.RULES, JSON.stringify(rules));
+    },
+    onLogsUpdate: (logs) => {
+      localStorage.setItem(STORAGE_KEYS.LOGS, JSON.stringify(logs));
+    },
+    initialSeed: {
+      users: INITIAL_USERS,
+      postos: INITIAL_POSTOS,
+      rules: INITIAL_RULES,
+    }
+  });
+}
 
 
